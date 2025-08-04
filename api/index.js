@@ -1,6 +1,6 @@
-const express = require('express');
-const serverless = require('serverless-http');
-const mysql = require('mysql2/promise');
+import express from 'express';
+import serverless from 'serverless-http';
+import mysql from 'mysql2/promise';
 
 const app = express();
 app.use(express.json());
@@ -29,4 +29,5 @@ app.get('/employees', async (req, res) => {
   }
 });
 
-module.exports.handler = serverless(app);
+// ✅ Required for Vercel
+export default serverless(app);
