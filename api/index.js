@@ -1,33 +1,32 @@
 const express = require('express');
 const serverless = require('serverless-http');
+const mysql = require('mysql2/promise');
 
 const app = express();
 app.use(express.json());
 
-// Sample root route
+// Create MySQL pool using env variables
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
 app.get('/', (req, res) => {
-  res.send('Hello from Express API!');
+  res.send('Hello from Vercel API with MySQL!');
 });
 
-// Example: GET all employees (stubbed example)
-app.get('/employees', (req, res) => {
-  // Replace with actual DB logic later
-  res.json([
-    { id: 1, name: 'John Doe', role: 'CEO' },
-    { id: 2, name: 'Jane Smith', role: 'CTO' }
-  ]);
+app.get('/employees', async (req, res) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM employees');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Detect if running on Vercel serverless or local
-const isServerless = !!process.env.VERCEL;
-
-if (!isServerless) {
-  // Running locally: listen on port 3000
-  const port = process.env.PORT || 3000;
-  app.listen(port, () => {
-    console.log(`Server listening on http://localhost:${port}`);
-  });
-} else {
-  // Export handler for Vercel serverless
-  module.exports.handler = serverless(app);
-}
+module.exports.handler = serverless(app);
