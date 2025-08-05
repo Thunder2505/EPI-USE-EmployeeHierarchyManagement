@@ -16,15 +16,15 @@ export default function HomePage() {
       return;
     }
 
-    fetch('/api/employees')
-      .then(res => res.json())
-      .then(data => {
-        setEmployees(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
+    // fetch('/api/employees')
+    //   .then(res => res.json())
+    //   .then(data => {
+    //     setEmployees(data);
+    //     setLoading(false);
+    //   })
+    //   .catch(() => {
+    //     setLoading(false);
+    //   });
   }, []);
 
   return (

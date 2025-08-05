@@ -7,7 +7,6 @@ export async function GET(request) {
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
   });
-
   try {
     const [rows] = await db.execute('SELECT * FROM employees');
     return new Response(JSON.stringify(rows), {
