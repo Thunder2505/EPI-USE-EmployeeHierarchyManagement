@@ -4,7 +4,12 @@ import mysql from 'mysql2/promise';
 export async function POST(req) {
   const { token } = await req.json();
 
-  const db = await mysql.createConnection({ /* your config */ });
+  const db = await mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+  });
 
   try {
     const [rows] = await db.execute('SELECT token_expire FROM users WHERE token = ?', [token]);
