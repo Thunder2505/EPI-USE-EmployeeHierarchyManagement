@@ -1,10 +1,6 @@
 import mysql from 'mysql2/promise';
 
 export async function GET(request) {
-  console.log(`DB_HOST: ${process.env.DB_HOST}`);
-  console.log(`DB_PORT: ${process.env.DB_PORT}`);
-  console.log(`DB_USER: ${process.env.DB_USER}`);
-  console.log(`DB_PASS: ${process.env.DB_PASS}`);
   const db = await mysql.createConnection({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
