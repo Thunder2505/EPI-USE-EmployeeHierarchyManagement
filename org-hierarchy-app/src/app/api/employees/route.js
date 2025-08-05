@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import bcrypt from 'bcryptjs';
 
 export async function GET(request) {
   const db = await mysql.createConnection({
@@ -22,6 +23,9 @@ export async function GET(request) {
     await db.end();
   }
 }
+
+import mysql from 'mysql2/promise';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request) {
   const db = await mysql.createConnection({
@@ -47,11 +51,18 @@ export async function POST(request) {
       password,
     } = body;
 
+    const pepper = email;
+    const customSalt = employee_number;
+
+    const combined = password + pepper + customSalt;
+
+    const hashedPassword = await bcrypt.hash(combined, 10);
+
     await db.execute(
       `INSERT INTO employees 
        (employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary, email, password) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary, email, password]
+      [employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary, email, hashedPassword]
     );
 
     return new Response(JSON.stringify({ message: 'Employee added' }), {
