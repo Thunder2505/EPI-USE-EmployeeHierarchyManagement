@@ -48,7 +48,7 @@ export async function POST(request) {
     await db.execute(
       `INSERT INTO employees 
        (employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary]
     );
 
