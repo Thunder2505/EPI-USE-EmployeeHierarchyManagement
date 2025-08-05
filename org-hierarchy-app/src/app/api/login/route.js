@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 export async function POST(request) {
   const db = await mysql.createConnection({
@@ -13,7 +14,6 @@ export async function POST(request) {
     const body = await request.json();
     const { email, password } = body;
 
-    // Validate input
     if (!email || !password) {
       return new Response(
         JSON.stringify({ error: 'Email and password are required' }),
@@ -21,7 +21,6 @@ export async function POST(request) {
       );
     }
 
-    // Find employee by email
     const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
 
     if (rows.length === 0) {
@@ -33,7 +32,6 @@ export async function POST(request) {
 
     const user = rows[0];
     const combined = password + email + user.employee_number;
-
     const passwordMatch = await bcrypt.compare(combined, user.password);
 
     if (!passwordMatch) {
@@ -43,10 +41,22 @@ export async function POST(request) {
       );
     }
 
-    return new Response(JSON.stringify({ message: 'Login successful' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // Generate secure token
+    const token = crypto.randomBytes(32).toString('hex');
+
+    // Calculate expiry (4 hours from now)
+    const expires = new Date(Date.now() + 4 * 60 * 60 * 1000);
+    const expiresFormatted = expires.toISOString().slice(0, 19).replace('T', ' ');
+
+    await db.execute(
+      'UPDATE users SET token = ?, token_expire = ? WHERE email = ?',
+      [token, expiresFormatted, email]
+    );
+
+    return new Response(
+      JSON.stringify({ message: 'Login successful', token }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
 
   } catch (err) {
     return new Response(

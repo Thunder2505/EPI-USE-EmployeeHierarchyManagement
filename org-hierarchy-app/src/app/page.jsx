@@ -1,4 +1,3 @@
-// src/app/page.jsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,22 +9,60 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
+    const checkSessionAndFetch = async () => {
+      const token = localStorage.getItem('session_token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
 
-    // fetch('/api/employees')
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     setEmployees(data);
-    //     setLoading(false);
-    //   })
-    //   .catch(() => {
-    //     setLoading(false);
-    //   });
-  }, []);
+      // Validate token with backend
+      try {
+        const res = await fetch('/api/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,  // Optional, if your backend requires auth header
+          },
+          body: JSON.stringify({ token }),
+        });
+
+        if (!res.ok) {
+          // Token invalid or expired
+          localStorage.removeItem('session_token');
+          router.push('/login');
+          return;
+        }
+
+        const sessionData = await res.json();
+
+        const now = new Date();
+        const expiryDate = new Date(sessionData.expiry); // ISO string from backend
+
+        if (expiryDate <= now) {
+          // Token expired
+          localStorage.removeItem('session_token');
+          router.push('/login');
+          return;
+        }
+
+        // Token valid — fetch employees
+        const employeesRes = await fetch('/api/employees');
+        if (!employeesRes.ok) {
+          setLoading(false);
+          return;
+        }
+        const employeesData = await employeesRes.json();
+        setEmployees(employeesData);
+        setLoading(false);
+      } catch (error) {
+        setLoading(false);
+        router.push('/login');  // Redirect on error just in case
+      }
+    };
+
+    checkSessionAndFetch();
+  }, [router]);
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>

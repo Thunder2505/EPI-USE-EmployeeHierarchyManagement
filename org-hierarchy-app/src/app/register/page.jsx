@@ -4,38 +4,45 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
+  const [employeeNumber, setEmployeeNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     try {
-      const res = await fetch('/api/login', {
+      const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          employee_number: employeeNumber,
+          email,
+          password,
+        }),
       });
 
-      const data = await res.json();
-
       if (res.ok) {
-        localStorage.setItem('session_token', data.token);
-
-        // Redirect
-        router.push('/');
+        setSuccess('Registration successful! Redirecting to login...');
+        setTimeout(() => router.push('/login'), 1500);
       } else {
-        setError(data.error || 'Invalid credentials');
+        const data = await res.json();
+        if (data.error === 'User already exists') {
+          setError('User already exists. Please try a different employee number.');
+        } else {
+          setError(data.error || 'Registration failed');
+        }
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
     }
   };
-
 
   return (
     <div
@@ -64,7 +71,6 @@ export default function LoginPage() {
         className="absolute top-6 left-6 hidden dark:block"
         priority
       />
-
       <div
         className="w-full max-w-md p-8 rounded-2xl shadow-md border"
         style={{
@@ -75,10 +81,25 @@ export default function LoginPage() {
         }}
       >
         <h2 className="text-2xl font-bold text-center mb-6">
-          Login to your account
+          Register your account
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label htmlFor="employee_number" className="block text-sm font-medium mb-1 text-gray-800 dark:text-gray-400">
+              Employee Number
+            </label>
+            <input
+              id="employee_number"
+              type="text"
+              value={employeeNumber}
+              onChange={(e) => setEmployeeNumber(e.target.value)}
+              placeholder="e.g. E1A"
+              className="w-full px-4 py-2 border rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              required
+            />
+          </div>
+
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-1 text-gray-800 dark:text-gray-400">
               Email
@@ -109,29 +130,26 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="flex justify-between text-sm text-gray-800 dark:text-gray-400">
-            <label className="flex items-center">
-              <input type="checkbox" className="mr-2" />
-              Remember me
-            </label>
-          </div>
-
           <button
             type="submit"
             className="w-full py-2 rounded-lg font-medium transition-colors bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600"
           >
-            Login
+            Register
           </button>
 
           {error && (
             <p className="text-red-500 text-sm text-center mt-2">{error}</p>
           )}
+
+          {success && (
+            <p className="text-green-500 text-sm text-center mt-2">{success}</p>
+          )}
         </form>
 
         <p className="mt-6 text-sm text-center text-gray-600 dark:text-gray-400">
-          Don’t have an account?
-          <a href="/register" className="text-blue-500 hover:underline ml-1">
-            Register here
+          Already have an account?
+          <a href="/login" className="text-blue-500 hover:underline ml-1">
+            Login here
           </a>
         </p>
       </div>

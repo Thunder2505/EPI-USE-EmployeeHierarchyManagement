@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #e7e7e7;
+  --foreground: #ffffff;
+  --border: #182563;
   --highlight: #CC1240;
+  --shadow: #4771be;
+  --text: #000000;
 }
 
 @theme inline {
@@ -17,6 +20,9 @@
   :root {
     --background: #262d3c; 
     --foreground: #151c31;
+    --border:#003983ff;
+    --shadow: #ffffff;
+    --text: #ffffff;
   }
 }
 
