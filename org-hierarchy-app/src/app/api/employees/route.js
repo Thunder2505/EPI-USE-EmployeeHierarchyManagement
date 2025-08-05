@@ -24,9 +24,6 @@ export async function GET(request) {
   }
 }
 
-import mysql from 'mysql2/promise';
-import bcrypt from 'bcryptjs';
-
 export async function POST(request) {
   const db = await mysql.createConnection({
     host: process.env.DB_HOST,
