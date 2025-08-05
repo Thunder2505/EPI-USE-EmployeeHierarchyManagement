@@ -1,12 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
+    // Example check — update this to your real auth check
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      router.push('/login'); // 🚨 Redirect immediately
+      return;
+    }
+
+    // If authenticated, fetch employee data
     fetch('/api/employees')
       .then(res => res.json())
       .then(data => {
