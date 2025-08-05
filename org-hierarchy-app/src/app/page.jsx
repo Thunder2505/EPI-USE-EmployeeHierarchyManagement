@@ -1,3 +1,4 @@
+// src/app/page.jsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -9,15 +10,12 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Example check — update this to your real auth check
     const token = localStorage.getItem('token');
-
     if (!token) {
-      router.push('/login'); // 🚨 Redirect immediately
+      router.push('/login');
       return;
     }
 
-    // If authenticated, fetch employee data
     fetch('/api/employees')
       .then(res => res.json())
       .then(data => {
