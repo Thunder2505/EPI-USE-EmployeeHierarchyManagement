@@ -21,8 +21,8 @@ export async function POST(request) {
       );
     }
 
-    // Find user by email
-    const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+    // Find employee by email
+    const [rows] = await db.execute('SELECT * FROM employees WHERE email = ?', [email]);
 
     if (rows.length === 0) {
       return new Response(
