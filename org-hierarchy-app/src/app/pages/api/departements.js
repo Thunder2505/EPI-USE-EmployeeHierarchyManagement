@@ -11,12 +11,12 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const [rows] = await db.execute('SELECT * FROM employees');
+      const [rows] = await db.execute('SELECT * FROM departments');
       res.status(200).json(rows);
     } else if (req.method === 'POST') {
-      const { employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary, email, password } = req.body;
-      await db.execute('INSERT INTO employees (employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary, email, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary, email, password]);
-      res.status(201).json({ message: 'Employee added' });
+      const { dept_number, dept_name } = req.body;
+      await db.execute('INSERT INTO departments (dept_id, dept_Name) VALUES (?, ?)', [dept_number, dept_name]);
+      res.status(201).json({ message: 'Department added' });
     } else {
       res.setHeader('Allow', ['GET', 'POST']);
       res.status(405).end(`Method ${req.method} Not Allowed`);
