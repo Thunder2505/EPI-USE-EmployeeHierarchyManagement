@@ -71,6 +71,17 @@ export async function POST(request) {
 
     const hashedPassword = await bcrypt.hash(combined, 10);
 
+    const [existingUser] = await db.execute(
+        `SELECT * FROM users WHERE employee_number = ? AND (email IS NOT NULL AND email != '')`,
+        [employee_number]
+        );
+    if (existingUser.length > 0) {
+      return new Response(
+        JSON.stringify({ error: 'User already exists' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );    
+    }
+
     await db.execute(
       `UPDATE users SET email = ?, password = ? WHERE employee_number = ?`,
       [email, hashedPassword, employee_number]
