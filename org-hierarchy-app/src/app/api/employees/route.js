@@ -1,10 +1,13 @@
-// /pages/api/employees.js
+export async function GET(request) {
+  return new Response(JSON.stringify({ message: 'Hello World' }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
-export default function handler(req, res) {
-  if (req.method === 'GET') {
-    res.status(200).json({ message: 'Hello World' });
-  } else {
-    res.setHeader('Allow', ['GET']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
-  }
+export async function POST(request) {
+  // handle POST here if you want
+  return new Response(JSON.stringify({ message: 'POST not implemented' }), {
+    status: 405,
+  });
 }
