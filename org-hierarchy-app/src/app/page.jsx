@@ -16,48 +16,41 @@ export default function HomePage() {
         return;
       }
 
-      // Validate token with backend
       try {
         const res = await fetch('/api/session', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,  // Optional, if your backend requires auth header
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ token }),
         });
 
         if (!res.ok) {
-          // Token invalid or expired
           localStorage.removeItem('session_token');
           router.push('/login');
           return;
         }
 
         const sessionData = await res.json();
-
         const now = new Date();
-        const expiryDate = new Date(sessionData.expiry); // ISO string from backend
+        const expiryDate = new Date(sessionData.expiry);
 
         if (expiryDate <= now) {
-          // Token expired
           localStorage.removeItem('session_token');
           router.push('/login');
           return;
         }
 
-        // Token valid — fetch employees
-        const employeesRes = await fetch('/api/employees');
-        if (!employeesRes.ok) {
-          setLoading(false);
-          return;
-        }
-        const employeesData = await employeesRes.json();
-        setEmployees(employeesData);
+        // ✅ Fetch employees after session is valid
+        const empRes = await fetch('/api/employees');
+        const empData = await empRes.json();
+        setEmployees(empData);
         setLoading(false);
+
       } catch (error) {
         setLoading(false);
-        router.push('/login');  // Redirect on error just in case
+        router.push('/login');
       }
     };
 
@@ -65,17 +58,39 @@ export default function HomePage() {
   }, [router]);
 
   return (
-    <main style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
-      <h1>Employee Directory</h1>
-      {loading && <p>Loading employees...</p>}
-      {!loading && employees.length === 0 && <p>No employees found.</p>}
-      <ul>
-        {employees.map(emp => (
-          <li key={emp.employee_number}>
-            {emp.name} {emp.surname} — {emp.role}
-          </li>
-        ))}
-      </ul>
+    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-6">
+      <div className="max-w-5xl mx-auto bg-[var(--foreground)] text-[var(--text)] shadow-md rounded-xl p-8">
+        <h1 className="text-3xl font-bold mb-6 text-center">Employee Directory</h1>
+
+        {loading ? (
+          <p className="text-center text-gray-500 dark:text-gray-400">Loading employees...</p>
+        ) : employees.length === 0 ? (
+          <p className="text-center text-gray-500 dark:text-gray-400">No employees found.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full table-auto border-collapse">
+              <thead>
+                <tr className="bg-blue-600 text-white text-left">
+                  <th className="px-4 py-2">Employee #</th>
+                  <th className="px-4 py-2">Name</th>
+                  <th className="px-4 py-2">Surname</th>
+                  <th className="px-4 py-2">Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employees.map((emp) => (
+                  <tr key={emp.employee_number} className="border-t dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-800">
+                    <td className="px-4 py-2">{emp.employee_number}</td>
+                    <td className="px-4 py-2">{emp.name}</td>
+                    <td className="px-4 py-2">{emp.surname}</td>
+                    <td className="px-4 py-2">{emp.role}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </main>
   );
 }

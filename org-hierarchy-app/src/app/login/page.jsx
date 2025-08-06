@@ -25,6 +25,8 @@ export default function LoginPage() {
 
       if (res.ok) {
         localStorage.setItem('session_token', data.token);
+        localStorage.setItem('user_email', email); // Save email for profile page
+        window.dispatchEvent(new Event('login'));
 
         // Redirect
         router.push('/');
@@ -45,26 +47,6 @@ export default function LoginPage() {
         color: 'var(--foreground)',
       }}
     >
-      {/* Light mode logo */}
-      <Image
-        src="/images/logo-light.png"
-        alt="Logo (Light Mode)"
-        width={240}
-        height={80}
-        className="absolute top-6 left-6 block dark:hidden"
-        priority
-      />
-
-      {/* Dark mode logo */}
-      <Image
-        src="/images/logo-dark.png"
-        alt="Logo (Dark Mode)"
-        width={240}
-        height={80}
-        className="absolute top-6 left-6 hidden dark:block"
-        priority
-      />
-
       <div
         className="w-full max-w-md p-8 rounded-2xl shadow-md border"
         style={{
@@ -74,6 +56,30 @@ export default function LoginPage() {
           boxShadow: '0 2px 8px var(--shadow)',
         }}
       >
+
+        <div className="flex justify-center items-center relative h-20">
+          {/* Light mode logo */}
+          <div className="block dark:hidden">
+            <Image
+              src="/images/EHM-Light.png"
+              alt="Logo (Light Mode)"
+              width={180}
+              height={80}
+              priority
+            />
+          </div>
+
+          {/* Dark mode logo */}
+          <div className="hidden dark:block">
+            <Image
+              src="/images/EHM-Dark.png"
+              alt="Logo (Dark Mode)"
+              width={180}
+              height={80}
+              priority
+            />
+          </div>
+        </div>
         <h2 className="text-2xl font-bold text-center mb-6">
           Login to your account
         </h2>
