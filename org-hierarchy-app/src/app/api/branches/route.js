@@ -37,7 +37,7 @@ export async function POST(request) {
     const { branch_number, branch_name } = body;
 
     await db.execute(
-      'INSERT INTO branches (branchID, branchName) VALUES (?, ?)',
+      'INSERT INTO branches (branch_id, name) VALUES (?, ?)',
       [branch_number, branch_name]
     );
 

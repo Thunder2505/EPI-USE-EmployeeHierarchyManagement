@@ -37,7 +37,7 @@ export async function POST(request) {
     const { role_number, role_name } = body;
 
     await db.execute(
-      'INSERT INTO roles (role_id, role_name) VALUES (?, ?)',
+      'INSERT INTO roles (role_id, name) VALUES (?, ?)',
       [role_number, role_name]
     );
 

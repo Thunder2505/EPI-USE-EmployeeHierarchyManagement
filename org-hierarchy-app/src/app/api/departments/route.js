@@ -37,7 +37,7 @@ export async function POST(request) {
     const { dept_number, dept_name } = body;
 
     await db.execute(
-      'INSERT INTO departments (dept_id, dept_Name) VALUES (?, ?)',
+      'INSERT INTO departments (dept_id, name) VALUES (?, ?)',
       [dept_number, dept_name]
     );
 
