@@ -34,11 +34,11 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { role_number, role_name } = body;
+    const { name } = body;
 
     await db.execute(
-      'INSERT INTO roles (role_id, name) VALUES (?, ?)',
-      [role_number, role_name]
+      'INSERT INTO roles (name) VALUES (?)',
+      [name]
     );
 
     return new Response(JSON.stringify({ message: 'Role added' }), {
