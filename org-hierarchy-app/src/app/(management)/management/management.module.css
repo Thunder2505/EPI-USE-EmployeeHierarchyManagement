@@ -1,0 +1,72 @@
+.page {
+  min-height: 90vh;
+  padding: 2rem;
+  background-color: var(--background);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.heading {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 3rem;
+}
+
+.tilesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+  width: 100%;
+  max-width: 900px;
+}
+
+.tile {
+  background-color: var(--foreground);
+  border: 1px solid var(--border-contrast);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 4px var(--shadow);
+  padding: 2rem 1.5rem;
+  text-align: center; 
+  display: flex;
+  flex-direction: column;
+  align-items: center; 
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.tile:hover {
+  background-color: var(--button-bg);
+  color: white;
+  box-shadow: 0 4px 12px var(--button-bg);
+}
+
+.tile:hover,
+.tile:focus-visible {
+  box-shadow: 0 8px 16px var(--shadow);
+  background-color: var(--button-bg);
+  color: white;
+  transform: translateY(-4px);
+  outline: none;
+}
+
+.tileContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.iconWrapper {
+  font-size: 3rem;
+  color: var(--button-bg);
+}
+
+.tileLabel {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
