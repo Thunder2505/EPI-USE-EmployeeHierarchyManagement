@@ -10,24 +10,14 @@ export async function GET(request) {
 
   try {
     const url = new URL(request.url);
-    const deptId = url.searchParams.get('dept_id');
     const roleId = url.searchParams.get('role_id');
-
-    if (!deptId) {
-      return new Response(JSON.stringify({ error: 'Department ID is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     let rows;
 
     if (roleId) {
-      console.log('Fetching role with ID:', roleId, 'for department:', deptId);
-      // Get a single role from the department
+      // Get a single role
       const [result] = await db.execute(
-        'SELECT * FROM roles WHERE department = ? AND role_id = ?',
-        [deptId, roleId]
+        'SELECT * FROM roles WHERE role_id = ?',
+        [roleId]
       );
       rows = result;
 
@@ -39,10 +29,7 @@ export async function GET(request) {
       }
     } else {
       // Get all roles from the department
-      const [result] = await db.execute(
-        'SELECT * FROM roles WHERE department= ? ORDER BY name',
-        [deptId]
-      );
+      const [result] = await db.execute('SELECT * FROM roles ORDER BY name');
       rows = result;
     }
 
@@ -71,13 +58,11 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { name, dept_id } = body;
-
-    console.log('Adding role:', name, 'to department:', dept_id);
+    const { name } = body;
 
     await db.execute(
-      'INSERT INTO roles (name, department) VALUES (?, ?)',
-      [name, dept_id]
+      'INSERT INTO roles (name) VALUES (?)',
+      [name]
     );
 
     return new Response(JSON.stringify({ message: 'Role added' }), {

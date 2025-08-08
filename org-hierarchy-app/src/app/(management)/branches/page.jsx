@@ -1,22 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import styles from './branches.module.css';
-import { useRouter } from 'next/navigation';
+import styles from '../management.module.css';
 
 export default function EditEntitiesPage() {
-  const router = useRouter();
   const [branches, setBranches] = useState([]);
   const [newBranch, setNewBranch] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState(""); 
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const [editingBranch, setEditingBranch] = useState(null);
+  const [editName, setEditName] = useState('');
 
   useEffect(() => {
     const fetchBranches = async () => {
-      const res = await fetch('/api/branches');
-      const data = await res.json();
-      setBranches(data);
+      try {
+        const res = await fetch('/api/branches');
+        if (!res.ok) throw new Error('Failed to fetch branches');
+        const data = await res.json();
+        setBranches(data);
+      } catch (err) {
+        setError(err.message);
+        setTimeout(() => setError(''), 3000);
+      }
     };
 
     fetchBranches();
@@ -28,21 +35,19 @@ export default function EditEntitiesPage() {
       setTimeout(() => setError(''), 3000);
       return;
     }
-
     try {
       const res = await fetch('/api/branches', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newBranch }),
+        body: JSON.stringify({ name: newBranch.trim() }),
       });
 
-      if (!res.ok) throw new Error('Failed to add branch');
+      if (!res.ok) throw new Error('Failed to add branch - Duplicate name?');
 
       const updated = await fetch('/api/branches').then(res => res.json());
       setBranches(updated);
       setNewBranch('');
       setMessage('Branch added successfully!');
-      
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
       setError(err.message);
@@ -50,13 +55,70 @@ export default function EditEntitiesPage() {
     }
   };
 
+  const startEdit = (branch) => {
+    setEditingBranch(branch);
+    setEditName(branch.name);
+  };
+
+  const cancelEdit = () => {
+    setEditingBranch(null);
+    setEditName('');
+  };
+
+  const saveEdit = async () => {
+    if (!editName.trim()) {
+      setError('Branch name cannot be empty');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/branches`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({id:editingBranch.branch_id, name: editName.trim() }),
+      });
+
+      if (!res.ok) throw new Error('Failed to update branch');
+
+      setBranches(prev =>
+        prev.map(b => (b.branch_id === editingBranch.branch_id ? { ...b, name: editName.trim() } : b))
+      );
+      setMessage('Branch updated successfully!');
+      setTimeout(() => setMessage(''), 3000);
+      cancelEdit();
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const deleteBranch = async (branch_id) => {
+    if (!confirm('Are you sure you want to delete this branch?')) return;
+
+    try {
+      const res = await fetch('/api/branches', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ branch_id }),
+      });
+
+      if (!res.ok) throw new Error('Failed to delete branch');
+
+      setBranches(prev => prev.filter(b => b.branch_id !== branch_id));
+      setMessage('Branch deleted successfully!');
+      setTimeout(() => setMessage(''), 3000);
+
+      if (editingBranch?.branch_id === branch_id) cancelEdit();
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+
   const filteredBranches = branches.filter(branch =>
     branch.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const goToDepartments = (branchId) => {
-    router.push(`/departments?branch_id=${branchId}`);
-  };
 
   return (
     <div className={styles.page}>
@@ -94,21 +156,38 @@ export default function EditEntitiesPage() {
 
           <div className={styles.resultsContainer}>
             {filteredBranches.length > 0 ? (
-              filteredBranches.map((branch) => (
-                <div
-                  key={branch.branch_id}
-                  className={styles.itemRow}
-                  onClick={() => goToDepartments(branch.branch_id)}
-                  style={{ cursor: 'pointer' }}
-                  title={`Go to departments for ${branch.name}`}
-                  tabIndex={0} // for accessibility
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      goToDepartments(branch.branch.id);
-                    }
-                  }}
-                >
-                  <span className={styles.itemText}>{branch.name}</span>
+              filteredBranches.map(branch => (
+                <div key={branch.branch_id} className={styles.itemRow}>
+                  {editingBranch?.branch_id === branch.branch_id ? (
+                    <>
+                      <input
+                        className={styles.input}
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        autoFocus
+                      />
+                      <button className={styles.buttonSmall} onClick={saveEdit}>Save</button>
+                      <button className={styles.buttonSmall} onClick={cancelEdit}>Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <span className={styles.itemText}>{branch.name}</span>
+                      <button
+                        className={styles.buttonSmall}
+                        onClick={() => startEdit(branch)}
+                        aria-label={`Edit ${branch.name}`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className={`${styles.buttonSmall} ${styles.deleteButton}`}
+                        onClick={() => deleteBranch(branch.branch_id)}
+                        aria-label={`Delete ${branch.name}`}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
               ))
             ) : (

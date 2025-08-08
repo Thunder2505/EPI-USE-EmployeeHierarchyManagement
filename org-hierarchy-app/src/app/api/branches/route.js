@@ -87,23 +87,29 @@ export async function DELETE(request) {
 
   try {
     const body = await request.json();
-    console.log('Received body:', body);
-    const { name } = body;
-    console.log('Deleting branch:', name);
-    const [result] = await db.execute('DELETE FROM branches WHERE name = ?', [name]);
+    const branch_id = body.branch_id;
+
+    if (!branch_id || isNaN(Number(branch_id))) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or missing branch_id in request body' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const [result] = await db.execute('DELETE FROM branches WHERE branch_id = ?', [branch_id]);
+
     if (result.affectedRows === 0) {
-      return new Response(JSON.stringify({ error: 'Branch not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'Branch not found' }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({ message: 'Branch deleted' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
     }
-    else {
-      return new Response(JSON.stringify({ message: 'Branch deleted' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    } catch (err) {
+  } catch (err) {
     if (err.code === 'ER_ROW_IS_REFERENCED_2') {
       return new Response(
         JSON.stringify({
@@ -121,11 +127,11 @@ export async function DELETE(request) {
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
-  }
-  finally {
+  } finally {
     await db.end();
   }
 }
+
 
 export async function PUT(request) {
   const db = await mysql.createConnection({

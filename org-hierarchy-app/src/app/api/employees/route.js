@@ -163,3 +163,80 @@ export async function POST(request) {
     await db.end();
   }
 }
+
+export async function PUT(request) {
+  const db = await mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+  });
+
+  try {
+    const body = await request.json();
+    const {
+      employee_number,
+      dept_number,
+      branch_number,
+      role_number,
+      name,
+      surname,
+      birth_date,
+      salary,
+    } = body;
+
+    await db.execute(
+      `UPDATE employees 
+       SET dept_number = ?, branch_number = ?, role_number = ?, name = ?, surname = ?, birth_date = ?, salary = ? 
+       WHERE employee_number = ?`,
+      [dept_number, branch_number, role_number, name, surname, birth_date, salary, employee_number]
+    );
+
+    return new Response(JSON.stringify({ message: 'Employee updated' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: 'Database error', details: err.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  } finally {
+    await db.end();
+  }
+}
+
+export async function DELETE(request) {
+  const db = await mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+  });
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const employee_number = searchParams.get('employee_number');
+
+    if (!employee_number) {
+      return new Response(JSON.stringify({ error: 'Employee number is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    await db.execute('DELETE FROM users WHERE employee_number = ?', [employee_number]);
+    await db.execute('DELETE FROM employees WHERE employee_number = ?', [employee_number]);
+
+    return new Response(JSON.stringify({ message: 'Employee deleted' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: 'Database error', details: err.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  } finally {
+    await db.end();
+  }
+}

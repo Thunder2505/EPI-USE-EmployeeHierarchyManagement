@@ -1,107 +1,116 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import styles from './roles.module.css';
+import styles from '../management.module.css';
 
-export default function RolesPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  const branchId = searchParams.get('branch_id');
-  const deptId = searchParams.get('dept_id');
-
-  const [deptName, setDeptName] = useState('');
-  const [originalDeptName, setOriginalDeptName] = useState('');
+export default function EditRolesPage() {
   const [roles, setRoles] = useState([]);
-  const [newRole, setNewRole] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [newRoleName, setNewRoleName] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const [editingRole, setEditingRole] = useState(null);
+  const [editName, setEditName] = useState('');
 
   useEffect(() => {
-    if (!branchId || !deptId) {
-      router.replace('/branches');
-      return;
-    }
-
-    const fetchData = async () => {
-      setLoading(true);
+    const fetchRoles = async () => {
       try {
-        // Fetch department name
-        const deptRes = await fetch(`/api/departments?branch_id=${branchId}&dept_id=${deptId}`);
-        if (!deptRes.ok) throw new Error('Failed to fetch department');
-        const deptData = await deptRes.json();
-        setDeptName(deptData[0]?.name || '');
-        setOriginalDeptName(deptData[0]?.name || '');
-        // Fetch roles
-        const roleRes = await fetch(`/api/roles?dept_id=${deptId}`);
-        if (!roleRes.ok) throw new Error('Failed to fetch roles');
-        const rolesData = await roleRes.json();
-        setRoles(rolesData);
+        const res = await fetch('/api/roles');
+        if (!res.ok) throw new Error('Failed to fetch roles');
+        const data = await res.json();
+        setRoles(data);
       } catch (err) {
         setError(err.message);
-      } finally {
-        setLoading(false);
+        setTimeout(() => setError(''), 3000);
       }
     };
 
-    fetchData();
-  }, [branchId, deptId, router]);
-
-  const updateDepartment = async () => {
-    try {
-      const res = await fetch(`/api/departments`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dept_id: deptId, name: deptName }),
-      });
-      if (!res.ok) throw new Error('Failed to update department');
-      setOriginalDeptName(deptName);
-      setMessage('Department updated successfully');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      setError(err.message);
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-
-  const deleteDepartment = async (id) => {
-    try {
-      const res = await fetch(`/api/departments`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dept_id: id }),
-      });
-      if (!res.ok) throw new Error('Failed to delete department');
-      setMessage('Department deleted successfully');
-      setTimeout(() => setMessage(''), 3000);
-      router.replace(`/departments?branch_id=${branchId}`);
-    } catch (err) {
-      setError(err.message);
-      setTimeout(() => setError(''), 3000);
-    }
-  };
+    fetchRoles();
+  }, []);
 
   const addRole = async () => {
-    if (!newRole.trim()) {
+    if (!newRoleName.trim()) {
       setError('Please enter a valid role name');
       setTimeout(() => setError(''), 3000);
       return;
     }
+
     try {
-      const res = await fetch(`/api/roles`, {
+      const res = await fetch('/api/roles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newRole, dept_id: deptId }),
+        body: JSON.stringify({ name: newRoleName.trim() }),
       });
-      if (!res.ok) throw new Error('Failed to add role');
-      const updated = await fetch(`/api/roles?dept_id=${deptId}`).then(res => res.json());
+
+      if (!res.ok) throw new Error('Failed to add role - Duplicate name?');
+
+      const updated = await fetch('/api/roles').then(res => res.json());
       setRoles(updated);
-      setNewRole('');
-      setMessage('Role added successfully');
+      setNewRoleName('');
+      setMessage('Role added successfully!');
       setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const startEdit = (role) => {
+    setEditingRole(role);
+    setEditName(role.name);
+  };
+
+  const cancelEdit = () => {
+    setEditingRole(null);
+    setEditName('');
+  };
+
+  const saveEdit = async () => {
+    if (!editName.trim()) {
+      setError('Role name cannot be empty');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/roles', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role_id: editingRole.role_id, name: editName.trim() }),
+      });
+
+      if (!res.ok) throw new Error('Failed to update role');
+
+      setRoles(prev =>
+        prev.map(r => (r.role_id === editingRole.role_id ? { ...r, name: editName.trim() } : r))
+      );
+      setMessage('Role updated successfully!');
+      setTimeout(() => setMessage(''), 3000);
+      cancelEdit();
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const deleteRole = async (role_id) => {
+    if (!confirm('Are you sure you want to delete this role?')) return;
+
+    try {
+      const res = await fetch('/api/roles', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role_id }),
+      });
+
+      if (!res.ok) throw new Error('Failed to delete role');
+
+      setRoles(prev => prev.filter(r => r.role_id !== role_id));
+      setMessage('Role deleted successfully!');
+      setTimeout(() => setMessage(''), 3000);
+
+      if (editingRole?.role_id === role_id) cancelEdit();
     } catch (err) {
       setError(err.message);
       setTimeout(() => setError(''), 3000);
@@ -112,104 +121,79 @@ export default function RolesPage() {
     role.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <p>Loading...</p>;
-
   return (
     <div className={styles.page}>
-      <h2 className={styles.heading}>
-        Manage Roles for department {deptName}
-      </h2>
+      <h2 className={styles.heading}>Manage Roles</h2>
 
       {message && <div className={styles.message}>{message}</div>}
       {error && <div className={styles.error}>{error}</div>}
 
-      <div className={styles.panelsContainer}>
-        {/* Department editing */}
-        <div className={styles.panel}>
-          <h3 className={styles.heading2}>Edit Department Details</h3>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              await updateDepartment();
-            }}
-          >
-            <label>
-              Department Name:
-              <input
-                type="text"
-                value={deptName}
-                onChange={(e) => setDeptName(e.target.value)}
-                className={styles.input}
-              />
-            </label>
-            <button
-              className={styles.button}
-              disabled={deptName === originalDeptName}
-              onClick={updateDepartment}
-            >
-              Save Changes
-            </button>
-          </form>
-          <button
-            className={styles.deleteButton}
-            onClick={async () => {
-              await deleteDepartment(deptId);
-            }}
-          >
-            Delete Department
-          </button>
+      <div className={styles.panel}>
+        <h3>Roles</h3>
+        <label className={styles.label}>Add a new role</label>
+
+        <div className={styles.inputRow}>
+          <input
+            className={styles.input}
+            value={newRoleName}
+            onChange={(e) => setNewRoleName(e.target.value)}
+            placeholder="New role"
+          />
+          <button className={styles.button} onClick={addRole}>Add</button>
         </div>
 
-        {/* Roles section */}
-        <div className={styles.panel}>
-          <h3 className={styles.heading2}>Roles</h3>
-          <label className={styles.label}>Add a new role</label>
-          <div className={styles.inputRow}>
+        <div className={styles.listSection}>
+          <p className={styles.listTitle}>Existing roles:</p>
+
+          <div className={styles.searchContainer}>
             <input
-              className={styles.inputNew}
-              value={newRole}
-              onChange={(e) => setNewRole(e.target.value)}
-              placeholder="New role"
+              type="text"
+              placeholder="Search roles..."
+              className={`${styles.input} ${styles.searchInput}`}
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
             />
-            <button className={styles.buttonNew} onClick={addRole}>Add</button>
           </div>
 
-          <div className={styles.listSection}>
-            <p className={styles.listTitle}>Existing roles:</p>
-
-            <div className={styles.searchContainer}>
-              <input
-                type="text"
-                placeholder="Search roles..."
-                className={`${styles.input} ${styles.searchInput}`}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            <div className={styles.resultsContainer}>
-              {filteredRoles.length > 0 ? (
-                filteredRoles.map((role) => (
-                  <div
-                    key={role.role_id}
-                    className={styles.itemRow}
-                    style={{ cursor: 'pointer' }}
-                    tabIndex={0}
-                    title={`Go to role: ${role.name}`}
-                    onClick={() => router.push(`/role?branch_id=${branchId}&dept_id=${deptId}&role_id=${role.role_id}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        router.push(`/role?branch_id=${branchId}&dept_id=${deptId}&role_id=${role.role_id}`);
-                      }
-                    }}
-                  >
-                    <span className={styles.itemText}>{role.name}</span>
-                  </div>
-                ))
-              ) : (
-                <p>No roles match your search.</p>
-              )}
-            </div>
+          <div className={styles.resultsContainer}>
+            {filteredRoles.length > 0 ? (
+              filteredRoles.map(role => (
+                <div key={role.role_id} className={styles.itemRow}>
+                  {editingRole?.role_id === role.role_id ? (
+                    <>
+                      <input
+                        className={styles.input}
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        autoFocus
+                      />
+                      <button className={styles.buttonSmall} onClick={saveEdit}>Save</button>
+                      <button className={styles.buttonSmall} onClick={cancelEdit}>Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <span className={styles.itemText}>{role.name}</span>
+                      <button
+                        className={styles.buttonSmall}
+                        onClick={() => startEdit(role)}
+                        aria-label={`Edit ${role.name}`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className={`${styles.buttonSmall} ${styles.deleteButton}`}
+                        onClick={() => deleteRole(role.role_id)}
+                        aria-label={`Delete ${role.name}`}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p>No roles match your search.</p>
+            )}
           </div>
         </div>
       </div>

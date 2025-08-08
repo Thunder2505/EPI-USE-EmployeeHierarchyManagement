@@ -10,23 +10,12 @@ export async function GET(request) {
 
   try {
     const url = new URL(request.url);
-    const branchId = url.searchParams.get('branch_id');
     const deptId = url.searchParams.get('dept_id');
-
-    if (!branchId) {
-      return new Response(JSON.stringify({ error: 'Branch ID is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     let rows;
-
     if (deptId) {
-      // Get a single department from the branch
       const [result] = await db.execute(
-        'SELECT * FROM departments WHERE branch = ? AND dept_id = ?',
-        [branchId, deptId]
+        'SELECT * FROM departments WHERE dept_id = ?',
+        [deptId]
       );
       rows = result;
 
@@ -37,11 +26,7 @@ export async function GET(request) {
         });
       }
     } else {
-      // Get all departments from the branch
-      const [result] = await db.execute(
-        'SELECT * FROM departments WHERE branch = ? ORDER BY name',
-        [branchId]
-      );
+      const [result] = await db.execute('SELECT * FROM departments ORDER BY name');
       rows = result;
     }
 
@@ -70,11 +55,11 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { name, branch } = body;
+    const { name } = body;
 
     await db.execute(
-      'INSERT INTO departments (name, branch) VALUES (?, ?)',
-      [name, branch]
+      'INSERT INTO departments (name) VALUES (?)',
+      [name]
     );
 
     return new Response(JSON.stringify({ message: 'Department added' }), {
