@@ -8,9 +8,9 @@ import styles from './management.module.css';
 const managementItems = [
   { label: 'Add Employee', href: '/employees/add', icon: <FaUserPlus /> },
   { label: 'Edit / Delete Employees', href: '/employees/edit', icon: <FaEdit /> },
-  { label: 'Manage Roles', href: '/roles', icon: <FaUsersCog /> },
-  { label: 'Manage Departments', href: '/departments', icon: <FaSitemap /> },
   { label: 'Manage Branches', href: '/branches', icon: <FaBuilding /> },
+  { label: 'Manage Departments', href: '/departments', icon: <FaSitemap /> },
+  { label: 'Manage Roles', href: '/roles', icon: <FaUsersCog /> },
 ];
 
 export default function ManagementDashboard() {
