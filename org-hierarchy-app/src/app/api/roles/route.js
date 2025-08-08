@@ -39,7 +39,7 @@ export async function GET(request) {
     } else {
       // Get all roles from the department
       const [result] = await db.execute(
-        'SELECT * FROM roles WHERE department_id = ? ORDER BY name',
+        'SELECT * FROM roles WHERE department= ? ORDER BY name',
         [deptId]
       );
       rows = result;

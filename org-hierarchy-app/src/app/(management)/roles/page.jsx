@@ -105,7 +105,7 @@ export default function RolesPage() {
   return (
     <div className={styles.page}>
       <h2 className={styles.heading}>
-        Manage Roles for department {deptName} (Branch: {branchName})
+        Manage Roles for department {deptName}
       </h2>
 
       {message && <div className={styles.message}>{message}</div>}
