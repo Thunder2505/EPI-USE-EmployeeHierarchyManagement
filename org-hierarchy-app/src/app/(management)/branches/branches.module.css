@@ -67,8 +67,10 @@
 .panel {
   display: flex;
   flex-direction: column;
-  height: 60vh;    /* use height instead of max-height for flex to work well */
+  height: 60vh;  
   width: 30%;
+  min-width: 350px; 
+  min-height: 500px;
   background-color: var(--foreground);
   color: var(--text);
   border: 1px solid var(--border);
@@ -126,30 +128,6 @@
   background-color: var(--button-hover);
 }
 
-.listTitle {
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-}
-
-.list {
-  list-style: disc;
-  padding-left: 1rem;
-  font-size: 0.875rem;
-  max-height: 12rem;
-  overflow-y: auto;
-  color: var(--input-text);
-}
-
-.list li {
-  margin-bottom: 0.25rem;
-}
-
-.list .empty {
-  font-style: italic;
-  color: #9ca3af;
-}
-
 .deleteButton {
   background-color: transparent;
   color: #ef4444; /* red-500 */
@@ -185,6 +163,11 @@
   border-radius: 0.375rem;
   padding: 0.5rem 0.75rem;
   margin: 0.5rem 1rem;
+  transition: background-color 0.2s;
+}
+
+.itemRow:hover {
+  background-color: var(--button-hover);
 }
 
 .itemText {

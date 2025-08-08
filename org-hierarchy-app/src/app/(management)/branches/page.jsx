@@ -42,6 +42,7 @@ export default function EditEntitiesPage() {
       setBranches(updated);
       setNewBranch('');
       setMessage('Branch added successfully!');
+      
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
       setError(err.message);
@@ -92,30 +93,29 @@ export default function EditEntitiesPage() {
           </div>
 
           <div className={styles.resultsContainer}>
-        {filteredBranches.length > 0 ? (
-          filteredBranches.map((branch) => (
-            <div
-              key={branch.branch_id}
-              className={styles.itemRow}
-              onClick={() => goToDepartments(branch.branch_id)}
-              style={{ cursor: 'pointer' }}
-              title={`Go to departments for ${branch.name}`}
-              tabIndex={0} // for accessibility
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  goToDepartments(branch.branch.id);
-                }
-              }}
-            >
-              <span className={styles.itemText}>{branch.name}</span>
-            </div>
-          ))
-        ) : (
-          <p>No branches match your search.</p>
-        )}
-      </div>
+            {filteredBranches.length > 0 ? (
+              filteredBranches.map((branch) => (
+                <div
+                  key={branch.branch_id}
+                  className={styles.itemRow}
+                  onClick={() => goToDepartments(branch.branch_id)}
+                  style={{ cursor: 'pointer' }}
+                  title={`Go to departments for ${branch.name}`}
+                  tabIndex={0} // for accessibility
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      goToDepartments(branch.branch.id);
+                    }
+                  }}
+                >
+                  <span className={styles.itemText}>{branch.name}</span>
+                </div>
+              ))
+            ) : (
+              <p>No branches match your search.</p>
+            )}
+          </div>
         </div>
-
       </div>
     </div>
   );

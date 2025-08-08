@@ -15,6 +15,9 @@ export default function DepartmentsPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [newDepartment, setNewDepartment] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+
 
   useEffect(() => {
     if (!branchId) {
@@ -51,6 +54,63 @@ export default function DepartmentsPage() {
 
     fetchData();
   }, [branchId, router]);
+
+  const deleteBranch = async (name) => {
+    try {
+      const res = await fetch('/api/branches', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data?.message || 'Failed to delete branch');
+
+      setMessage('Branch deleted successfully!');
+      setTimeout(() => {
+        setMessage('');
+        router.replace('/branches');
+      }, 1500); // Redirect after short delay
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const addDepartment = async () => {
+    if (!newDepartment.trim()) {
+      setError('Please enter a valid department name');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/departments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newDepartment, branch: branchId }),
+      });
+
+      if (!res.ok) throw new Error('Failed to add department');
+
+      const created = await fetch(`/api/departments?branch_id=${branchId}`).then(res => res.json());
+      setDepartments(created);
+      setNewDepartment('');
+      setMessage('Department added successfully!');
+
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+
+  const filteredDepartments = departments.filter(dept =>
+    dept.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
 
   if (loading) return <p>Loading...</p>;
 
@@ -105,24 +165,64 @@ export default function DepartmentsPage() {
               Save Changes
             </button>
           </form>
+          <button
+            className={styles.deleteButton}
+            onClick={() => {
+              if (confirm('Are you sure you want to delete this branch?')) {
+                deleteBranch(branchName);
+              }
+            }}
+          >
+            Delete Branch
+          </button>
+
         </div>
 
         <div className={styles.panel}>
-          {/* Content for second panel */}
           <h3 className={styles.heading2}>Departments</h3>
-          {departments.length === 0 ? (
-            <p>No departments found.</p>
-          ) : (
-            <ul className={styles.departmentList}>
-              {departments.map((dept) => (
-                <li key={dept.id} className={styles.departmentItem}>
-                  <span>{dept.name}</span>
-                  {/* You can add edit/delete buttons here */}
-                </li>
-              ))}
-            </ul>
-          )}
+
+          <label className={styles.label}>Add a new department</label>
+          <div className={styles.inputRow}>
+            <input
+              className={styles.inputNew}
+              value={newDepartment}
+              onChange={(e) => setNewDepartment(e.target.value)}
+              placeholder="New department"
+            />
+            <button className={styles.buttonNew} onClick={addDepartment}>Add</button>
+          </div>
+
+          <div className={styles.listSection}>
+            <p className={styles.listTitle}>Existing departments:</p>
+
+            <div className={styles.searchContainer}>
+              <input
+                type="text"
+                placeholder="Search departments..."
+                className={`${styles.input} ${styles.searchInput}`}
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.resultsContainer}>
+              {filteredDepartments.length > 0 ? (
+                filteredDepartments.map((dept) => (
+                  <div
+                    key={`${dept.dept_id}-${dept.name}`}
+                    className={styles.itemRow}
+                    title={`Department: ${dept.name}`}
+                  >
+                    <span className={styles.itemText}>{dept.name}</span>
+                  </div>
+                ))
+              ) : (
+                <p>No departments match your search.</p>
+              )}
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
 
