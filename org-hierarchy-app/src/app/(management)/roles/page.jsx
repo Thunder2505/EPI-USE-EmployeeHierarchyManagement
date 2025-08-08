@@ -11,7 +11,6 @@ export default function RolesPage() {
   const branchId = searchParams.get('branch_id');
   const deptId = searchParams.get('dept_id');
 
-  const [branchName, setBranchName] = useState('');
   const [deptName, setDeptName] = useState('');
   const [originalDeptName, setOriginalDeptName] = useState('');
   const [roles, setRoles] = useState([]);
@@ -31,15 +30,11 @@ export default function RolesPage() {
       setLoading(true);
       try {
         // Fetch department name
-        console.log('Fetching department name for deptId:', deptId);
-        console.log('Branch ID:', branchId);
         const deptRes = await fetch(`/api/departments?branch_id=${branchId}&dept_id=${deptId}`);
         if (!deptRes.ok) throw new Error('Failed to fetch department');
         const deptData = await deptRes.json();
         setDeptName(deptData[0]?.name || '');
         setOriginalDeptName(deptData[0]?.name || '');
-        console.log('Department Name:', deptName);
-
         // Fetch roles
         const roleRes = await fetch(`/api/roles?dept_id=${deptId}`);
         if (!roleRes.ok) throw new Error('Failed to fetch roles');
@@ -66,6 +61,23 @@ export default function RolesPage() {
       setOriginalDeptName(deptName);
       setMessage('Department updated successfully');
       setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const deleteDepartment = async (id) => {
+    try {
+      const res = await fetch(`/api/departments`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dept_id: id }),
+      });
+      if (!res.ok) throw new Error('Failed to delete department');
+      setMessage('Department deleted successfully');
+      setTimeout(() => setMessage(''), 3000);
+      router.replace(`/departments?branch_id=${branchId}`);
     } catch (err) {
       setError(err.message);
       setTimeout(() => setError(''), 3000);
@@ -115,21 +127,36 @@ export default function RolesPage() {
         {/* Department editing */}
         <div className={styles.panel}>
           <h3 className={styles.heading2}>Edit Department Details</h3>
-          <label>
-            Department Name:
-            <input
-              type="text"
-              value={deptName}
-              onChange={(e) => setDeptName(e.target.value)}
-              className={styles.input}
-            />
-          </label>
-          <button
-            className={styles.button}
-            disabled={deptName === originalDeptName}
-            onClick={updateDepartment}
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              await updateDepartment();
+            }}
           >
-            Save Changes
+            <label>
+              Department Name:
+              <input
+                type="text"
+                value={deptName}
+                onChange={(e) => setDeptName(e.target.value)}
+                className={styles.input}
+              />
+            </label>
+            <button
+              className={styles.button}
+              disabled={deptName === originalDeptName}
+              onClick={updateDepartment}
+            >
+              Save Changes
+            </button>
+          </form>
+          <button
+            className={styles.deleteButton}
+            onClick={async () => {
+              await deleteDepartment(deptId);
+            }}
+          >
+            Delete Department
           </button>
         </div>
 
@@ -163,7 +190,19 @@ export default function RolesPage() {
             <div className={styles.resultsContainer}>
               {filteredRoles.length > 0 ? (
                 filteredRoles.map((role) => (
-                  <div key={role.role_id} className={styles.itemRow}>
+                  <div
+                    key={role.role_id}
+                    className={styles.itemRow}
+                    style={{ cursor: 'pointer' }}
+                    tabIndex={0}
+                    title={`Go to role: ${role.name}`}
+                    onClick={() => router.push(`/role?branch_id=${branchId}&dept_id=${deptId}&role_id=${role.role_id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        router.push(`/role?branch_id=${branchId}&dept_id=${deptId}&role_id=${role.role_id}`);
+                      }
+                    }}
+                  >
                     <span className={styles.itemText}>{role.name}</span>
                   </div>
                 ))
