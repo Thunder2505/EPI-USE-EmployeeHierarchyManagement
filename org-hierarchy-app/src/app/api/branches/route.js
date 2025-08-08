@@ -126,3 +126,41 @@ export async function DELETE(request) {
     await db.end();
   }
 }
+
+export async function PUT(request) {
+  const db = await mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+  });
+
+  try {
+    const body = await request.json();
+    const { id, name } = body;
+
+    if (!id || !name) {
+      return new Response(
+        JSON.stringify({ error: 'ID and name are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    await db.execute(
+      'UPDATE branches SET name = ? WHERE branch_id = ?',
+      [name, id]
+    );
+
+    return new Response(JSON.stringify({ message: 'Branch updated' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: 'Database error', details: err.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  } finally {
+    await db.end();
+  }
+}

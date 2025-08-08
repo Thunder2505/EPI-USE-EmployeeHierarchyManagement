@@ -11,17 +11,45 @@ export async function GET(request) {
   try {
     const url = new URL(request.url);
     const branchId = url.searchParams.get('branch_id');
+    const deptId = url.searchParams.get('dept_id');
+
     if (!branchId) {
       return new Response(JSON.stringify({ error: 'Branch ID is required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const [rows] = await db.execute('SELECT * FROM departments WHERE branch = ? ORDER BY name', [branchId]);
+
+    let rows;
+
+    if (deptId) {
+      // Get a single department from the branch
+      const [result] = await db.execute(
+        'SELECT * FROM departments WHERE branch = ? AND dept_id = ?',
+        [branchId, deptId]
+      );
+      rows = result;
+
+      if (rows.length === 0) {
+        return new Response(JSON.stringify({ error: 'Department not found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      // Get all departments from the branch
+      const [result] = await db.execute(
+        'SELECT * FROM departments WHERE branch = ? ORDER BY name',
+        [branchId]
+      );
+      rows = result;
+    }
+
     return new Response(JSON.stringify(rows), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+
   } catch (err) {
     return new Response(
       JSON.stringify({ error: 'Database error', details: err.message }),
@@ -31,6 +59,7 @@ export async function GET(request) {
     await db.end();
   }
 }
+
 
 export async function POST(request) {
   const db = await mysql.createConnection({

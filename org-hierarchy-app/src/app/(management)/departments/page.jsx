@@ -212,6 +212,14 @@ export default function DepartmentsPage() {
                     key={`${dept.dept_id}-${dept.name}`}
                     className={styles.itemRow}
                     title={`Department: ${dept.name}`}
+                    onClick={() => router.push(`/roles?branch_id=${branchId}&dept_id=${dept.dept_id}`)}
+                    style={{ cursor: 'pointer' }}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        router.push(`/roles?branch_id=${branchId}&dept_id=${dept.dept_id}`);
+                      }
+                    }}
                   >
                     <span className={styles.itemText}>{dept.name}</span>
                   </div>
