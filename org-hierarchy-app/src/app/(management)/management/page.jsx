@@ -6,8 +6,7 @@ import { FaUserPlus, FaEdit, FaUsersCog, FaBuilding, FaSitemap } from 'react-ico
 import styles from './management.module.css';
 
 const managementItems = [
-  { label: 'Add Employee', href: '/employees/add', icon: <FaUserPlus /> },
-  { label: 'Edit / Delete Employees', href: '/employees/edit', icon: <FaEdit /> },
+  { label: 'Add Employee', href: '/employees', icon: <FaUserPlus /> },
   { label: 'Manage Branches', href: '/branches', icon: <FaBuilding /> },
   { label: 'Manage Departments', href: '/departments', icon: <FaSitemap /> },
   { label: 'Manage Roles', href: '/roles', icon: <FaUsersCog /> },

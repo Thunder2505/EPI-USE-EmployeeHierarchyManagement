@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import EmployeeTree from './components/EmployeeTree';
+import EmployeeList from './components/EmployeeList/EmployeeList';
+import styles from './HomePage.module.css';
 
 export default function HomePage() {
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [view, setView] = useState('hierarchy'); // default to hierarchy
 
   useEffect(() => {
     const checkSessionAndFetch = async () => {
@@ -42,15 +43,7 @@ export default function HomePage() {
           router.push('/login');
           return;
         }
-
-        // ✅ Fetch employees after session is valid
-        const empRes = await fetch('/api/employees');
-        const empData = await empRes.json();
-        setEmployees(empData);
-        setLoading(false);
-
-      } catch (error) {
-        setLoading(false);
+      } catch {
         router.push('/login');
       }
     };
@@ -60,11 +53,28 @@ export default function HomePage() {
 
   return (
     <>
-      <title>Employee Hierarchy</title>
-      <main className="min-h-screen bg-gray-50 p-6">
-        <h1 className="text-3xl font-bold text-center mb-8">Employee Hierarchy</h1>
-        <EmployeeTree />
-      </main>
+      <div className={styles.page}>
+
+        {/* View Toggle Bar */}
+        <div className={styles.viewToggleBar}>
+          <button
+            className={`${styles.toggleButton} ${view === 'hierarchy' ? styles.active : ''}`}
+            onClick={() => setView('hierarchy')}
+          >
+            Hierarchy View
+          </button>
+          <button
+            className={`${styles.toggleButton} ${view === 'list' ? styles.active : ''}`}
+            onClick={() => setView('list')}
+          >
+            List View
+          </button>
+        </div>
+
+        <main className={styles.treeWrapper}>
+          {view === 'hierarchy' ? <EmployeeTree /> : <EmployeeList />}
+        </main>
+      </div>
     </>
   );
 }

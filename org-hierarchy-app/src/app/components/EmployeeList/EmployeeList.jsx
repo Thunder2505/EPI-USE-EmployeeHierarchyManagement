@@ -1,22 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import styles from './employees.module.css';
+import styles from './EmployeeList.module.css';
 
-export default function EditEmployeePage() {
+export default function EmployeeList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
-  // Dropdown data states
   const [branches, setBranches] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loadingDropdowns, setLoadingDropdowns] = useState(true);
 
-  // Editing state: employee being edited + form data
   const [editingEmployeeNumber, setEditingEmployeeNumber] = useState(null);
   const [editForm, setEditForm] = useState({
     employee_number: '',
@@ -29,7 +27,19 @@ export default function EditEmployeePage() {
     salary: '',
   });
 
-  // Fetch employees once on mount
+  // Filter states
+  const [filters, setFilters] = useState({
+    branch: '',
+    department: '',
+    role: '',
+    salaryMin: '',
+    salaryMax: '',
+    birthDateFrom: '',
+    birthDateTo: '',
+  });
+
+  const [showFilters, setShowFilters] = useState(false);
+
   useEffect(() => {
     async function fetchEmployees() {
       setLoading(true);
@@ -48,7 +58,6 @@ export default function EditEmployeePage() {
     fetchEmployees();
   }, []);
 
-  // Fetch dropdown data once on mount
   useEffect(() => {
     async function fetchDropdowns() {
       setLoadingDropdowns(true);
@@ -80,23 +89,87 @@ export default function EditEmployeePage() {
     fetchDropdowns();
   }, []);
 
-  // Filter employees by search term (employee_number or name/surname)
+  // Enhanced filtering logic
   useEffect(() => {
+    let filtered = employees;
+
+    // Text search filter
     const term = searchTerm.trim().toLowerCase();
-    if (!term) {
-      setFilteredEmployees(employees);
-    } else {
-      setFilteredEmployees(
-        employees.filter(emp =>
-          emp.employee_number.toString().includes(term) ||
-          emp.name.toLowerCase().includes(term) ||
-          emp.surname.toLowerCase().includes(term)
-        )
+    if (term) {
+      filtered = filtered.filter(emp =>
+        emp.employee_number.toString().includes(term) ||
+        emp.name.toLowerCase().includes(term) ||
+        emp.surname.toLowerCase().includes(term)
       );
     }
-  }, [searchTerm, employees]);
 
-  // Start editing an employee - populate edit form
+    // Branch filter
+    if (filters.branch) {
+      filtered = filtered.filter(emp => emp.branch_number === parseInt(filters.branch));
+    }
+
+    // Department filter
+    if (filters.department) {
+      filtered = filtered.filter(emp => emp.dept_number === parseInt(filters.department));
+    }
+
+    // Role filter
+    if (filters.role) {
+      filtered = filtered.filter(emp => emp.role_number === parseInt(filters.role));
+    }
+
+    // Salary range filter
+    if (filters.salaryMin) {
+      filtered = filtered.filter(emp => emp.salary >= parseFloat(filters.salaryMin));
+    }
+    if (filters.salaryMax) {
+      filtered = filtered.filter(emp => emp.salary <= parseFloat(filters.salaryMax));
+    }
+
+    // Birth date range filter
+    if (filters.birthDateFrom) {
+      filtered = filtered.filter(emp => new Date(emp.birth_date) >= new Date(filters.birthDateFrom));
+    }
+    if (filters.birthDateTo) {
+      filtered = filtered.filter(emp => new Date(emp.birth_date) <= new Date(filters.birthDateTo));
+    }
+
+    setFilteredEmployees(filtered);
+  }, [searchTerm, employees, filters]);
+
+  const handleFilterChange = (filterName, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterName]: value
+    }));
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setFilters({
+      branch: '',
+      department: '',
+      role: '',
+      salaryMin: '',
+      salaryMax: '',
+      birthDateFrom: '',
+      birthDateTo: '',
+    });
+  };
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (searchTerm.trim()) count++;
+    if (filters.branch) count++;
+    if (filters.department) count++;
+    if (filters.role) count++;
+    if (filters.salaryMin) count++;
+    if (filters.salaryMax) count++;
+    if (filters.birthDateFrom) count++;
+    if (filters.birthDateTo) count++;
+    return count;
+  };
+
   const startEdit = emp => {
     setEditingEmployeeNumber(emp.employee_number);
     setEditForm({
@@ -106,13 +179,12 @@ export default function EditEmployeePage() {
       role_number: emp.role_number,
       name: emp.name,
       surname: emp.surname,
-      birth_date: emp.birth_date.slice(0, 10), // yyyy-mm-dd
+      birth_date: emp.birth_date.slice(0, 10),
       salary: emp.salary,
     });
     setMessage(null);
   };
 
-  // Cancel editing
   const cancelEdit = () => {
     setEditingEmployeeNumber(null);
     setEditForm({
@@ -133,7 +205,6 @@ export default function EditEmployeePage() {
     setEditForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // Save edited employee details
   const saveEdit = async () => {
     for (const field of ['employee_number', 'branch_number', 'dept_number', 'role_number', 'name', 'surname', 'birth_date', 'salary']) {
       if (!editForm[field]) {
@@ -177,7 +248,6 @@ export default function EditEmployeePage() {
     }
   };
 
-  // Delete employee with confirmation
   const deleteEmployee = async employee_number => {
     if (!confirm('Are you sure you want to delete this employee?')) return;
 
@@ -198,8 +268,25 @@ export default function EditEmployeePage() {
     }
   };
 
+  // Helper function to get name by ID
+  const getBranchName = (branchId) => {
+    const branch = branches.find(b => b.branch_id === branchId);
+    return branch ? branch.name : 'Unknown';
+  };
+
+  const getDepartmentName = (deptId) => {
+    const dept = departments.find(d => d.dept_id === deptId);
+    return dept ? dept.name : 'Unknown';
+  };
+
+  const getRoleName = (roleId) => {
+    const role = roles.find(r => r.role_id === roleId);
+    return role ? role.name : 'Unknown';
+  };
+
   return (
-    <main className={styles.page}>
+    <>
+    <div className={styles.page}>
       <h1 className={styles.heading}>Edit / Delete Employees</h1>
 
       {message && (
@@ -209,6 +296,7 @@ export default function EditEmployeePage() {
       )}
 
       <div className={styles.panel}>
+        {/* Search Section */}
         <label className={styles.label}>
           Search by Employee Number or Name
           <input
@@ -220,10 +308,139 @@ export default function EditEmployeePage() {
           />
         </label>
 
+        {/* Filter Toggle */}
+        <div className={styles.filterToggle}>
+          <button
+            className={styles.buttonSmall}
+            onClick={() => setShowFilters(!showFilters)}
+            type="button"
+          >
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+            {getActiveFilterCount() > 0 && ` (${getActiveFilterCount()} active)`}
+          </button>
+          {getActiveFilterCount() > 0 && (
+            <button
+              className={`${styles.buttonSmall} ${styles.clearButton}`}
+              onClick={clearAllFilters}
+              type="button"
+            >
+              Clear All Filters
+            </button>
+          )}
+        </div>
+
+        {showFilters && (
+          <div className={styles.filtersPanel}>
+            <h3 className={styles.filtersHeading}>Filter Options</h3>
+            
+            <div className={styles.filtersGrid}>
+              {/* Branch Filter */}
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Branch</label>
+                <select
+                  className={styles.inputSelect}
+                  value={filters.branch}
+                  onChange={e => handleFilterChange('branch', e.target.value)}
+                  disabled={loadingDropdowns}
+                >
+                  <option value="">All Branches</option>
+                  {branches.map(branch => (
+                    <option key={branch.branch_id} value={branch.branch_id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Department Filter */}
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Department</label>
+                <select
+                  className={styles.inputSelect}
+                  value={filters.department}
+                  onChange={e => handleFilterChange('department', e.target.value)}
+                  disabled={loadingDropdowns}
+                >
+                  <option value="">All Departments</option>
+                  {departments.map(dept => (
+                    <option key={dept.dept_id} value={dept.dept_id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Role Filter */}
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Role</label>
+                <select
+                  className={styles.inputSelect}
+                  value={filters.role}
+                  onChange={e => handleFilterChange('role', e.target.value)}
+                  disabled={loadingDropdowns}
+                >
+                  <option value="">All Roles</option>
+                  {roles.map(role => (
+                    <option key={role.role_id} value={role.role_id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Salary Range Filter */}
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Salary Range</label>
+                <div className={styles.rangeInputs}>
+                  <input
+                    type="number"
+                    className={styles.inputNumber}
+                    placeholder="Min salary"
+                    value={filters.salaryMin}
+                    onChange={e => handleFilterChange('salaryMin', e.target.value)}
+                  />
+                  <span className={styles.rangeSeparator}>to</span>
+                  <input
+                    type="number"
+                    className={styles.inputNumber}
+                    placeholder="Max salary"
+                    value={filters.salaryMax}
+                    onChange={e => handleFilterChange('salaryMax', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Birth Date Range Filter */}
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Birth Date Range</label>
+                <div className={styles.rangeInputs}>
+                  <input
+                    type="date"
+                    className={styles.inputDate}
+                    value={filters.birthDateFrom}
+                    onChange={e => handleFilterChange('birthDateFrom', e.target.value)}
+                  />
+                  <span className={styles.rangeSeparator}>to</span>
+                  <input
+                    type="date"
+                    className={styles.inputDate}
+                    value={filters.birthDateTo}
+                    onChange={e => handleFilterChange('birthDateTo', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Results Info */}
+        <div className={styles.resultsInfo}>
+          <p>Showing {filteredEmployees.length} of {employees.length} employees</p>
+        </div>
+
         {loading ? (
           <p>Loading employees...</p>
         ) : filteredEmployees.length === 0 ? (
-          <p>No employees found.</p>
+          <p>No employees found matching your criteria.</p>
         ) : (
           <div className={styles.resultsContainer}>
             {filteredEmployees.map(emp => (
@@ -359,27 +576,48 @@ export default function EditEmployeePage() {
                   </form>
                 ) : (
                   <>
-                    <span className={styles.itemText}>
-                      #{emp.employee_number} — {emp.name} {emp.surname}
-                    </span>
-                    <button className={styles.buttonSmall} onClick={() => startEdit(emp)} type="button">
-                      Edit
-                    </button>
-                    <button
-                      className={`${styles.buttonSmall} ${styles.deleteButton}`}
-                      onClick={() => deleteEmployee(emp.employee_number)}
-                      type="button"
-                    >
-                      Delete
-                    </button>
+                    <div className={styles.employeeInfo}>
+                      <span className={styles.itemText}>
+                        #{emp.employee_number} — {emp.name} {emp.surname}
+                      </span>
+                      <div className={styles.employeeDetails}>
+                        <span className={styles.detailItem}>
+                          Branch: {getBranchName(emp.branch_number)}
+                        </span>
+                        <span className={styles.detailItem}>
+                          Dept: {getDepartmentName(emp.dept_number)}
+                        </span>
+                        <span className={styles.detailItem}>
+                          Role: {getRoleName(emp.role_number)}
+                        </span>
+                        <span className={styles.detailItem}>
+                          Salary: ${emp.salary?.toLocaleString()}
+                        </span>
+                        <span className={styles.detailItem}>
+                          DOB: {new Date(emp.birth_date).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className={styles.actionButtons}>
+                      <button className={styles.buttonSmall} onClick={() => startEdit(emp)} type="button">
+                        Edit
+                      </button>
+                      <button
+                        className={`${styles.buttonSmall} ${styles.deleteButton}`}
+                        onClick={() => deleteEmployee(emp.employee_number)}
+                        type="button"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </>
                 )}
-
               </div>
             ))}
           </div>
         )}
       </div>
-    </main>
+    </div>
+    </>
   );
 }
