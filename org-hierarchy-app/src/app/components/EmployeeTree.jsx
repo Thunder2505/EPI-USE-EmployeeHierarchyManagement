@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import styles from './EmployeeTree.module.css';
 
 async function sha256(str) {
@@ -47,43 +47,8 @@ export default function EmployeeTree() {
 
   const [isOverTrash, setIsOverTrash] = useState(false);
 
-  useEffect(() => {
-    const checkDarkMode = () => {
-      setIsDarkMode(
-        window.matchMedia && 
-        window.matchMedia('(prefers-color-scheme: dark)').matches
-      );
-    };
-    checkDarkMode();
-    
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', checkDarkMode);
-    
-    return () => {
-      mediaQuery.removeEventListener('change', checkDarkMode);
-    };
-  }, []);
-
-  // Add wheel event listener to prevent page scrolling
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const preventPageScroll = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      handleWheel(e);
-    };
-
-    canvas.addEventListener('wheel', preventPageScroll, { passive: false });
-    
-    return () => {
-      canvas.removeEventListener('wheel', preventPageScroll);
-    };
-  }, [scale, position]);
-
-  const colors = {
+  // Memoize colors to prevent re-creation on every render
+  const colors = useMemo(() => ({
     dark: {
       nodeBg: '#434d8aff',
       nodeHover: '#4c5d8bff',
@@ -102,7 +67,66 @@ export default function EmployeeTree() {
       textColor: '#1e293b',
       shadowColor: 'rgba(0, 0, 0, 0.1)'
     }
-  };
+  }), []);
+
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(
+        window.matchMedia && 
+        window.matchMedia('(prefers-color-scheme: dark)').matches
+      );
+    };
+    checkDarkMode();
+    
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', checkDarkMode);
+    
+    return () => {
+      mediaQuery.removeEventListener('change', checkDarkMode);
+    };
+  }, []);
+
+  // Memoize handleWheel function
+  const handleWheel = useCallback((e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const contentMouseX = (mouseX - position.x) / scale;
+    const contentMouseY = (mouseY - position.y) / scale;
+
+    const zoomSpeed = 0.001;
+    const delta = -e.deltaY * zoomSpeed;
+    const newScale = Math.min(Math.max(scale + delta, 0.10), 3);
+
+    const newX = mouseX - contentMouseX * newScale;
+    const newY = mouseY - contentMouseY * newScale;
+
+    setScale(newScale);
+    setPosition({ x: newX, y: newY });
+  }, [scale, position]);
+
+  // Add wheel event listener to prevent page scrolling
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const preventPageScroll = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      handleWheel(e);
+    };
+
+    canvas.addEventListener('wheel', preventPageScroll, { passive: false });
+    
+    return () => {
+      canvas.removeEventListener('wheel', preventPageScroll);
+    };
+  }, [handleWheel]);
 
   useEffect(() => {
     async function fetchUnassignedEmployees() {
@@ -132,7 +156,6 @@ export default function EmployeeTree() {
     });
     setShowUnassignedDropdown(false);
   };
-
 
   const findNode = (tree, term) => {
     if (!tree) return null;
@@ -492,7 +515,8 @@ export default function EmployeeTree() {
     fetchHierarchy();
   }, []);
 
-  const calculatePositions = (tree) => {
+  // Memoize calculatePositions function to prevent recreation
+  const calculatePositions = useCallback((tree) => {
     if (!tree) return { nodes: [], connections: [] };
 
     const nodes = [];
@@ -559,7 +583,7 @@ export default function EmployeeTree() {
 
     positionNodes(tree, 0, 0);
     return { nodes, connections };
-  };
+  }, [expandedNodes]);
 
   useEffect(() => {
     if (treeData && canvasRef.current) {
@@ -774,7 +798,7 @@ export default function EmployeeTree() {
       ctx.restore();
     }
 
-  }, [treeData, expandedNodes, scale, position, hoveredNode, draggedNode, isDraggingNode, dropTarget, lastMouse, dragOffset, isDarkMode]);
+  }, [treeData, expandedNodes, scale, position, hoveredNode, draggedNode, isDraggingNode, dropTarget, lastMouse, dragOffset, isDarkMode, calculatePositions, colors.dark, colors.light]);
 
   const getNodeAtPosition = (mouseX, mouseY) => {
     const { nodes } = calculatePositions(treeData);
@@ -948,29 +972,6 @@ export default function EmployeeTree() {
         });
       }
     }
-  };
-
-  const handleWheel = (e) => {
-    // This function is now called from the event listener we set up in useEffect
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const contentMouseX = (mouseX - position.x) / scale;
-    const contentMouseY = (mouseY - position.y) / scale;
-
-    const zoomSpeed = 0.001;
-    const delta = -e.deltaY * zoomSpeed;
-    const newScale = Math.min(Math.max(scale + delta, 0.10), 3);
-
-    const newX = mouseX - contentMouseX * newScale;
-    const newY = mouseY - contentMouseY * newScale;
-
-    setScale(newScale);
-    setPosition({ x: newX, y: newY });
   };
 
   const resetView = () => {

@@ -26,26 +26,26 @@ const UserManual = () => (
       <div>
         <img src="/images/help-page/tree-view.png" alt="Employee hierarchy tree" />
         <p className={styles['image-description']}>
-          When you are logged in you are presented with a tree view of the organisation's employee hierarchy.
-          You can drag in the hierarchy's open spaces to move around and use scroll to zoom in and out.
+          When you are logged in you are presented with a tree view of the organisation&apos;s employee hierarchy.
+          You can drag in the hierarchy&apos;s open spaces to move around and use scroll to zoom in and out.
         </p>
       </div>
       <div>
         <img src="/images/help-page/profile-details.png" alt="Employee profile details" />
         <p className={styles['image-description']}>
-          You can click on an employee's profile photo to see more details on that employee. You can also remove an employee from the hierarchy in this menu.
+          You can click on an employee&apos;s profile photo to see more details on that employee. You can also remove an employee from the hierarchy in this menu.
         </p>
       </div>
       <div>
         <img src="/images/help-page/drag-employee.png" alt="Drag employee card" />
         <p className={styles['image-description']}>
-          You can drag an employee's card to another employee's box to change the hierarchy (as long as it doesn't cause a circular reporting line).
+          You can drag an employee&apos;s card to another employee&apos;s box to change the hierarchy (as long as it doesn&apos;t cause a circular reporting line).
         </p>
       </div>
       <div>
         <img src="/images/help-page/search-employee.png" alt="Search employee" />
         <p className={styles['image-description']}>
-          You can search for a specific employee in the search box using name or employee number in the top left. When you click search, it will make sure the employee is visible in the tree, then you can click center for it to take you to that specific employee's card.
+          You can search for a specific employee in the search box using name or employee number in the top left. When you click search, it will make sure the employee is visible in the tree, then you can click center for it to take you to that specific employee&apos;s card.
         </p>
       </div>
       <div>
