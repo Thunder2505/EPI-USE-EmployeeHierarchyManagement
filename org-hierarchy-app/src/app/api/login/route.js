@@ -2,6 +2,68 @@ import mysql from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
+/**
+ * @swagger
+ * /login:
+ *   post:
+ *     summary: Authenticate user and generate a login token
+ *     description: Verifies user credentials and returns an authentication token along with user role.
+ *     requestBody:
+ *       description: User email and password for login
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: mysecretpassword
+ *     responses:
+ *       200:
+ *         description: Login successful, returns token and user role
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Login successful
+ *                 token:
+ *                   type: string
+ *                   description: Authentication token
+ *                 role:
+ *                   type: string
+ *                   description: User role name
+ *       400:
+ *         description: Missing email or password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Invalid email or password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Database error or missing employee/role data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
 export async function POST(request) {
   const db = await mysql.createConnection({
     host: process.env.DB_HOST,

@@ -1,5 +1,42 @@
 import mysql from 'mysql2/promise';
 
+/**
+ * @swagger
+ * /employees:
+ *   get:
+ *     summary: Retrieve all employees or a single employee by employee_number
+ *     parameters:
+ *       - in: query
+ *         name: employee_number
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The employee number to retrieve
+ *     responses:
+ *       200:
+ *         description: List of employees or single employee
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Employee'
+ *                 - $ref: '#/components/schemas/Employee'
+ *       404:
+ *         description: Employee not found (when employee_number specified but no record)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Database error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
 export async function GET(request) {
   const db = await mysql.createConnection({
     host: process.env.DB_HOST,
@@ -54,6 +91,64 @@ export async function GET(request) {
   }
 }
 
+/**
+ * @swagger
+ * /employees:
+ *   post:
+ *     summary: Add a new employee (and create user account)
+ *     requestBody:
+ *       description: Employee object to add
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - employee_number
+ *               - dept_number
+ *               - branch_number
+ *               - role_number
+ *               - name
+ *               - surname
+ *               - birth_date
+ *               - salary
+ *             properties:
+ *               employee_number:
+ *                 type: string
+ *               dept_number:
+ *                 type: string
+ *               branch_number:
+ *                 type: string
+ *               role_number:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               surname:
+ *                 type: string
+ *               birth_date:
+ *                 type: string
+ *                 format: date
+ *               salary:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Employee added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Employee added
+ *       500:
+ *         description: Database error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
 export async function POST(request) {
   const db = await mysql.createConnection({
     host: process.env.DB_HOST,
@@ -103,6 +198,64 @@ export async function POST(request) {
   }
 }
 
+/**
+ * @swagger
+ * /employees:
+ *   put:
+ *     summary: Update an existing employee
+ *     requestBody:
+ *       description: Employee object with updated fields
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - employee_number
+ *               - dept_number
+ *               - branch_number
+ *               - role_number
+ *               - name
+ *               - surname
+ *               - birth_date
+ *               - salary
+ *             properties:
+ *               employee_number:
+ *                 type: string
+ *               dept_number:
+ *                 type: string
+ *               branch_number:
+ *                 type: string
+ *               role_number:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               surname:
+ *                 type: string
+ *               birth_date:
+ *                 type: string
+ *                 format: date
+ *               salary:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Employee updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Employee updated
+ *       500:
+ *         description: Database error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
 export async function PUT(request) {
   const db = await mysql.createConnection({
     host: process.env.DB_HOST,
@@ -144,6 +297,43 @@ export async function PUT(request) {
     await db.end();
   }
 }
+
+/**
+ * @swagger
+ * /employees:
+ *   delete:
+ *     summary: Delete an employee by employee_number, reassign managed employees if needed
+ *     parameters:
+ *       - in: query
+ *         name: employee_number
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Employee number to delete
+ *     responses:
+ *       200:
+ *         description: Employee deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Employee deleted
+ *       400:
+ *         description: Missing employee_number or cannot reassign managed employees due to no upper manager
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Database error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 
 export async function DELETE(request) {
   const db = await mysql.createConnection({

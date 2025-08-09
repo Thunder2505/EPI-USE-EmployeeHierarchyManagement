@@ -84,7 +84,7 @@ export default function Header() {
       </div>
 
       <div className="flex items-center space-x-6">
-        {isLoggedIn && userRole === 'System Administrator' && (
+        {isLoggedIn && (
           <Link
             href="/management"
             className="flex items-center space-x-1 font-semibold cursor-pointer

@@ -1,5 +1,40 @@
 import mysql from 'mysql2/promise';
 
+/**
+ * @swagger
+ * /reporting_line_managers:
+ *   get:
+ *     summary: Retrieve reporting lines for all employees or a specific employee
+ *     parameters:
+ *       - in: query
+ *         name: employee_id
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Employee ID to filter reporting lines
+ *     responses:
+ *       200:
+ *         description: Reporting line(s) retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ReportingLineManager'
+ *       404:
+ *         description: Employee not found (if employee_id specified but no data)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Database error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
 export async function GET(request) {
   const db = await mysql.createConnection({
     host: process.env.DB_HOST,
@@ -46,6 +81,53 @@ export async function GET(request) {
     await db.end();
   }
 }
+
+/**
+ * @swagger
+ * /reporting_line_managers:
+ *   post:
+ *     summary: Add a reporting line manager relationship
+ *     requestBody:
+ *       description: Reporting line relationship to add
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - employee_id
+ *               - manager_id
+ *             properties:
+ *               employee_id:
+ *                 type: string
+ *                 description: Employee ID
+ *               manager_id:
+ *                 type: string
+ *                 description: Manager ID
+ *     responses:
+ *       201:
+ *         description: Manager added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Manager added successfully
+ *       400:
+ *         description: Invalid input or circular reference detected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Database error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 
 export async function POST(request) {
   const db = await mysql.createConnection({
@@ -133,6 +215,57 @@ export async function POST(request) {
   }
 }
 
+/**
+ * @swagger
+ * /reporting_line_managers:
+ *   delete:
+ *     summary: Delete a reporting line manager relationship
+ *     requestBody:
+ *       description: Reporting line relationship to delete
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - employee_id
+ *               - manager_id
+ *             properties:
+ *               employee_id:
+ *                 type: string
+ *               manager_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Manager removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Manager removed successfully
+ *       400:
+ *         description: Missing employee_id or manager_id
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: No matching record found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Database error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
 export async function DELETE(request) {
   const db = await mysql.createConnection({
     host: process.env.DB_HOST,
@@ -179,6 +312,54 @@ export async function DELETE(request) {
     await db.end();
   }
 }
+
+/**
+ * @swagger
+ * /reporting_line_managers:
+ *   put:
+ *     summary: Update a reporting line manager relationship
+ *     requestBody:
+ *       description: Reporting line relationship update info
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - employee_id
+ *               - manager_id
+ *             properties:
+ *               employee_id:
+ *                 type: string
+ *               manager_id:
+ *                 type: string
+ *               old_manager_id:
+ *                 type: string
+ *                 description: Previous manager ID to remove (optional)
+ *     responses:
+ *       200:
+ *         description: Manager updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Manager updated successfully
+ *       400:
+ *         description: Invalid input or circular reference detected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Database error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 
 export async function PUT(request) {
   const db = await mysql.createConnection({

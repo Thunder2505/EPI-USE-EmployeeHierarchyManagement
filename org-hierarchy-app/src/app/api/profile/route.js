@@ -1,5 +1,47 @@
 import crypto from 'crypto';
 
+/**
+ * @swagger
+ * /profile:
+ *   get:
+ *     summary: Fetch Gravatar profile data by email
+ *     description: Retrieves Gravatar profile information for a given email address by querying the Gravatar API using SHA256 hashed email.
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: email
+ *         description: Email address to fetch Gravatar profile for
+ *     responses:
+ *       200:
+ *         description: Gravatar profile data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               description: Gravatar profile JSON data
+ *       400:
+ *         description: Missing or invalid email query parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Gravatar profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       5XX:
+ *         description: Gravatar API or server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
 export async function GET(request) {
   try {
     // Get email from query param (e.g., /api/profile?email=user@example.com)
