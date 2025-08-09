@@ -41,6 +41,12 @@ export default function EmployeeTree() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
+  const [unassignedEmployees, setUnassignedEmployees] = useState([]);
+  const [showUnassignedDropdown, setShowUnassignedDropdown] = useState(false);
+  const [draggingUnassigned, setDraggingUnassigned] = useState(null);
+
+  const [isOverTrash, setIsOverTrash] = useState(false);
+
   useEffect(() => {
     const checkDarkMode = () => {
       setIsDarkMode(
@@ -98,6 +104,36 @@ export default function EmployeeTree() {
     }
   };
 
+  useEffect(() => {
+    async function fetchUnassignedEmployees() {
+      try {
+        const response = await fetch('/api/not_assigned');
+        const data = await response.json();
+        setUnassignedEmployees(data);
+      } catch (err) {
+        console.error('Error fetching unassigned employees:', err);
+      }
+    }
+    
+    fetchUnassignedEmployees();
+  }, []);
+
+  const handleUnassignedDragStart = (employee) => {
+    setDraggingUnassigned(employee);
+    setIsDraggingNode(true);
+    setDraggedNode({
+      employee_number: employee.employee_number,
+      name: `${employee.name} ${employee.surname}`,
+      title: employee.role_name || 'Unknown Role',
+      data: employee,
+      children: [],
+      width: 350,
+      height: 400
+    });
+    setShowUnassignedDropdown(false);
+  };
+
+
   const findNode = (tree, term) => {
     if (!tree) return null;
     
@@ -147,6 +183,34 @@ export default function EmployeeTree() {
     };
 
     expandParents(node.employee_number, treeData);
+  };
+
+  const handleRemoveFromHierarchy = async (employeeId) => {
+    try {
+      setIsUpdating(true);
+      
+      // Find the current manager of the employee
+      const currentManager = findCurrentManager(employeeId, treeData);
+      
+      if (currentManager) {
+        await fetch('/api/hierarchy', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            employee_id: employeeId,
+            manager_id: currentManager
+          })
+        });
+        
+        // Refresh the tree data
+        await refreshTreeData();
+      }
+    } catch (error) {
+      console.error('Error removing from hierarchy:', error);
+      alert(`Failed to remove from hierarchy: ${error.message}`);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const [foundNode, setFoundNode] = useState(null);
@@ -812,12 +876,25 @@ export default function EmployeeTree() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    if (isDraggingNode && draggedNode && dropTarget) {
-      // Execute the hierarchy change
-      const currentManager = findCurrentManager(draggedNode.employee_number, treeData);
-      
-      if (dropTarget !== currentManager) {
-        await updateHierarchy(draggedNode.employee_number, dropTarget, currentManager);
+    if (isDraggingNode) {
+      if (draggedNode && dropTarget) {
+        // Execute the hierarchy change
+        await updateHierarchy(
+          draggedNode.employee_number, 
+          dropTarget, 
+          findCurrentManager(draggedNode.employee_number, treeData)
+        );
+      } else if (draggingUnassigned && dropTarget) {
+        // Handle assigning an unassigned employee
+        await updateHierarchy(
+          draggingUnassigned.employee_number,
+          dropTarget,
+          null
+        );
+      } else if ((draggedNode || draggingUnassigned) && isOverTrash) {
+        // Handle removing from hierarchy
+        const employeeId = draggedNode ? draggedNode.employee_number : draggingUnassigned.employee_number;
+        await handleRemoveFromHierarchy(employeeId);
       }
     }
 
@@ -825,7 +902,9 @@ export default function EmployeeTree() {
     setIsDragging(false);
     setIsDraggingNode(false);
     setDraggedNode(null);
+    setDraggingUnassigned(null);
     setDropTarget(null);
+    setIsOverTrash(false);
     setDragOffset({ x: 0, y: 0 });
     
     canvas.style.cursor = 'default';
@@ -964,6 +1043,48 @@ export default function EmployeeTree() {
             </button>
           )}
         </form>
+
+        <div className={styles.unassignedDropdownContainer}>
+          <button 
+            type="button" 
+            onClick={async () => {
+              if (!showUnassignedDropdown) {
+                try {
+                  const response = await fetch('/api/not_assigned');
+                  const data = await response.json();
+                  setUnassignedEmployees(data);
+                } catch (err) {
+                  console.error('Error fetching unassigned employees:', err);
+                }
+              }
+              setShowUnassignedDropdown(!showUnassignedDropdown);
+            }}
+            className={styles.addEmployeeButton}
+            disabled={isUpdating}
+          >
+            Add Unassigned Employee
+          </button>
+          
+          {showUnassignedDropdown && (
+            <div className={styles.unassignedDropdown}>
+              {unassignedEmployees.length > 0 ? (
+                unassignedEmployees.map(emp => (
+                  <div 
+                    key={emp.employee_number}
+                    className={styles.unassignedEmployee}
+                    draggable
+                    onDragStart={() => handleUnassignedDragStart(emp)}
+                    onClick={() => handleUnassignedDragStart(emp)}
+                  >
+                    {emp.employee_number}: {emp.name} {emp.surname}
+                  </div>
+                ))
+              ) : (
+                <div className={styles.noUnassigned}>No unassigned employees</div>
+              )}
+            </div>
+          )}
+        </div>
         
         <button onClick={resetView} className={styles.resetButton} disabled={isUpdating}>
           Reset View
@@ -1036,6 +1157,20 @@ export default function EmployeeTree() {
                     height={64}
                     style={{ borderRadius: '50%', marginBottom: '1rem' }}
                   />
+                  <div className={styles.modalActions}>
+                    <button 
+                      className={styles.removeButton}
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to remove ${selectedEmployee.name} from the hierarchy?`)) {
+                          handleRemoveFromHierarchy(selectedEmployee.employee_number);
+                          setShowDetails(false);
+                        }
+                      }}
+                      disabled={isUpdating}
+                    >
+                      Remove from Hierarchy
+                    </button>
+                  </div>
                   <div className={styles.detailRow}>
                     <span className={styles.label}>Employee Number:</span>
                     <span className={styles.value}>{selectedEmployee.data.employee_number}</span>
