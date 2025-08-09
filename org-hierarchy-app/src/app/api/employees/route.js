@@ -163,8 +163,46 @@ export async function DELETE(request) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    const [managers] = await db.execute(
+      'SELECT manager_id FROM reporting_line_managers WHERE employee_id = ?',
+      [employee_number]
+    );
+
+    let upperManagerId = null;
+    if (managers.length > 0) {
+      upperManagerId = managers[0].manager_id;
+    }
+
+    const [managedEmployees] = await db.execute(
+      'SELECT employee_id FROM reporting_line_managers WHERE manager_id = ?',
+      [employee_number]
+    );
+    console.log('Managed Employees:', managedEmployees);
+    if (managedEmployees.length > 0) {
+      if (!upperManagerId) {
+        return new Response(
+          JSON.stringify({ error: 'Cannot reassign managed employees: no upper manager found' }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      await db.execute(
+        'UPDATE reporting_line_managers SET manager_id = ? WHERE manager_id = ?',
+        [upperManagerId, employee_number]
+      );
+    }
+
     await db.execute('DELETE FROM users WHERE employee_number = ?', [employee_number]);
     await db.execute('DELETE FROM employees WHERE employee_number = ?', [employee_number]);
+
+    await db.execute(
+      'DELETE FROM reporting_line_managers WHERE employee_id = ? OR manager_id = ?',
+      [employee_number, employee_number]
+    );
 
     return new Response(JSON.stringify({ message: 'Employee deleted' }), {
       status: 200,
@@ -173,6 +211,7 @@ export async function DELETE(request) {
   } catch (err) {
     return new Response(
       JSON.stringify({ error: 'Database error', details: err.message }),
+      console.error(err),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   } finally {

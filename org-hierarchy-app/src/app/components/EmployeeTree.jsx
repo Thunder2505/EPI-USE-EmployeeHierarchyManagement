@@ -34,7 +34,6 @@ export default function EmployeeTree() {
   const [showDetails, setShowDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Drag and drop state
   const [isDraggingNode, setIsDraggingNode] = useState(false);
   const [draggedNode, setDraggedNode] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
@@ -49,11 +48,8 @@ export default function EmployeeTree() {
         window.matchMedia('(prefers-color-scheme: dark)').matches
       );
     };
-    
-    // Set initial value
     checkDarkMode();
     
-    // Listen for changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQuery.addEventListener('change', checkDarkMode);
     
@@ -68,21 +64,18 @@ export default function EmployeeTree() {
     if (!canvas) return;
 
     const preventPageScroll = (e) => {
-      // Always prevent default wheel behavior on the canvas
       e.preventDefault();
       e.stopPropagation();
       
-      // Call our zoom handler
       handleWheel(e);
     };
 
-    // Add passive: false to ensure preventDefault works
     canvas.addEventListener('wheel', preventPageScroll, { passive: false });
     
     return () => {
       canvas.removeEventListener('wheel', preventPageScroll);
     };
-  }, [scale, position]); // Dependencies for handleWheel
+  }, [scale, position]);
 
   const colors = {
     dark: {
@@ -592,13 +585,11 @@ export default function EmployeeTree() {
       ctx.shadowBlur = isHovered || isDropTarget ? 8 : 4;
       ctx.shadowOffsetY = isHovered || isDropTarget ? 4 : 2;
       
-      // Rounded rectangle
       const radius = 8;
       ctx.beginPath();
       ctx.roundRect(nodeX, nodeY, node.width, node.height, radius);
       ctx.fill();
       
-      // Draw drop target border
       if (isDropTarget) {
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 3;
@@ -648,7 +639,6 @@ export default function EmployeeTree() {
 
     ctx.restore();
 
-    // Draw dragged node separately (on top, following mouse)
     if (draggedNode && isDraggingNode) {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
