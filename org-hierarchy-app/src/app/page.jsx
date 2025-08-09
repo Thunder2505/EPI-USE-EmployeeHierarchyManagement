@@ -1,44 +1,80 @@
-// src/app/page.jsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import EmployeeTree from './components/EmployeeTree';
+import EmployeeList from './components/EmployeeList/EmployeeList';
+import styles from './HomePage.module.css';
 
 export default function HomePage() {
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [view, setView] = useState('hierarchy'); // default to hierarchy
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
+    const checkSessionAndFetch = async () => {
+      const token = localStorage.getItem('session_token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
 
-    // fetch('/api/employees')
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     setEmployees(data);
-    //     setLoading(false);
-    //   })
-    //   .catch(() => {
-    //     setLoading(false);
-    //   });
-  }, []);
+      try {
+        const res = await fetch('/api/session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ token }),
+        });
+
+        if (!res.ok) {
+          localStorage.removeItem('session_token');
+          router.push('/login');
+          return;
+        }
+
+        const sessionData = await res.json();
+        const now = new Date();
+        const expiryDate = new Date(sessionData.expiry);
+
+        if (expiryDate <= now) {
+          localStorage.removeItem('session_token');
+          router.push('/login');
+          return;
+        }
+      } catch {
+        router.push('/login');
+      }
+    };
+
+    checkSessionAndFetch();
+  }, [router]);
 
   return (
-    <main style={{ padding: '2rem', fontFamily: 'Arial, sans-serif' }}>
-      <h1>Employee Directory</h1>
-      {loading && <p>Loading employees...</p>}
-      {!loading && employees.length === 0 && <p>No employees found.</p>}
-      <ul>
-        {employees.map(emp => (
-          <li key={emp.employee_number}>
-            {emp.name} {emp.surname} — {emp.role}
-          </li>
-        ))}
-      </ul>
-    </main>
+    <>
+      <div className={styles.page}>
+
+        {/* View Toggle Bar */}
+        <div className={styles.viewToggleBar}>
+          <button
+            className={`${styles.toggleButton} ${view === 'hierarchy' ? styles.active : ''}`}
+            onClick={() => setView('hierarchy')}
+          >
+            Hierarchy View
+          </button>
+          <button
+            className={`${styles.toggleButton} ${view === 'list' ? styles.active : ''}`}
+            onClick={() => setView('list')}
+          >
+            List View
+          </button>
+        </div>
+
+        <main className={styles.treeWrapper}>
+          {view === 'hierarchy' ? <EmployeeTree /> : <EmployeeList />}
+        </main>
+      </div>
+    </>
   );
 }

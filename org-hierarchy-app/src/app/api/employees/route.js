@@ -7,16 +7,47 @@ export async function GET(request) {
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
   });
+
   try {
-    const [rows] = await db.execute('SELECT * FROM employees');
+    const url = new URL(request.url);
+    const employeeNumber = url.searchParams.get('employee_number');
+
+    let rows;
+    if (employeeNumber) {
+      // Get one employee by employee_number
+      const [result] = await db.execute(
+        'SELECT * FROM employees WHERE employee_number = ?',
+        [employeeNumber]
+      );
+      rows = result;
+
+      if (rows.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Employee not found' }),
+          {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    } else {
+      // Get all employees
+      const [result] = await db.execute('SELECT * FROM employees ORDER BY employee_number');
+      rows = result;
+    }
+
     return new Response(JSON.stringify(rows), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+
   } catch (err) {
     return new Response(
       JSON.stringify({ error: 'Database error', details: err.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
     );
   } finally {
     await db.end();
@@ -43,15 +74,19 @@ export async function POST(request) {
       surname,
       birth_date,
       salary,
-      email,
-      password,
     } = body;
 
     await db.execute(
       `INSERT INTO employees 
-       (employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary, email, password) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary, email, password]
+       (employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [employee_number, dept_number, branch_number, role_number, name, surname, birth_date, salary]
+    );
+
+    await db.execute(
+      `INSERT INTO users (employee_number) 
+       VALUES (?)`,
+      [employee_number]
     );
 
     return new Response(JSON.stringify({ message: 'Employee added' }), {
@@ -61,6 +96,122 @@ export async function POST(request) {
   } catch (err) {
     return new Response(
       JSON.stringify({ error: 'Database error', details: err.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  } finally {
+    await db.end();
+  }
+}
+
+export async function PUT(request) {
+  const db = await mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+  });
+
+  try {
+    const body = await request.json();
+    const {
+      employee_number,
+      dept_number,
+      branch_number,
+      role_number,
+      name,
+      surname,
+      birth_date,
+      salary,
+    } = body;
+
+    await db.execute(
+      `UPDATE employees 
+       SET dept_number = ?, branch_number = ?, role_number = ?, name = ?, surname = ?, birth_date = ?, salary = ? 
+       WHERE employee_number = ?`,
+      [dept_number, branch_number, role_number, name, surname, birth_date, salary, employee_number]
+    );
+
+    return new Response(JSON.stringify({ message: 'Employee updated' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: 'Database error', details: err.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  } finally {
+    await db.end();
+  }
+}
+
+export async function DELETE(request) {
+  const db = await mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+  });
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const employee_number = searchParams.get('employee_number');
+
+    if (!employee_number) {
+      return new Response(JSON.stringify({ error: 'Employee number is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const [managers] = await db.execute(
+      'SELECT manager_id FROM reporting_line_managers WHERE employee_id = ?',
+      [employee_number]
+    );
+
+    let upperManagerId = null;
+    if (managers.length > 0) {
+      upperManagerId = managers[0].manager_id;
+    }
+
+    const [managedEmployees] = await db.execute(
+      'SELECT employee_id FROM reporting_line_managers WHERE manager_id = ?',
+      [employee_number]
+    );
+    console.log('Managed Employees:', managedEmployees);
+    if (managedEmployees.length > 0) {
+      if (!upperManagerId) {
+        return new Response(
+          JSON.stringify({ error: 'Cannot reassign managed employees: no upper manager found' }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      await db.execute(
+        'UPDATE reporting_line_managers SET manager_id = ? WHERE manager_id = ?',
+        [upperManagerId, employee_number]
+      );
+    }
+
+    await db.execute('DELETE FROM users WHERE employee_number = ?', [employee_number]);
+    await db.execute('DELETE FROM employees WHERE employee_number = ?', [employee_number]);
+
+    await db.execute(
+      'DELETE FROM reporting_line_managers WHERE employee_id = ? OR manager_id = ?',
+      [employee_number, employee_number]
+    );
+
+    return new Response(JSON.stringify({ message: 'Employee deleted' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: 'Database error', details: err.message }),
+      console.error(err),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   } finally {
