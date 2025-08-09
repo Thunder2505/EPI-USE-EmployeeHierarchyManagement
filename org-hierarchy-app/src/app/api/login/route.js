@@ -41,10 +41,38 @@ export async function POST(request) {
       );
     }
 
-    // Generate secure token
+    // Get role_number from employees table using employee_number
+    const [employeeRows] = await db.execute(
+      'SELECT role_number FROM employees WHERE employee_number = ?',
+      [user.employee_number]
+    );
+
+    if (employeeRows.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Employee data not found' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const roleNumber = employeeRows[0].role_number;
+
+    // Get role name from roles table using role_number
+    const [roleRows] = await db.execute(
+      'SELECT name FROM roles WHERE role_id = ?',
+      [roleNumber]
+    );
+
+    if (roleRows.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Role data not found' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const roleName = roleRows[0].name;
+
     const token = crypto.randomBytes(32).toString('hex');
 
-    // Calculate expiry (4 hours from now)
     const expires = new Date(Date.now() + 4 * 60 * 60 * 1000);
     const expiresFormatted = expires.toISOString().slice(0, 19).replace('T', ' ');
 
@@ -54,7 +82,7 @@ export async function POST(request) {
     );
 
     return new Response(
-      JSON.stringify({ message: 'Login successful', token }),
+      JSON.stringify({ message: 'Login successful', token, role: roleName }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
 

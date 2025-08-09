@@ -135,7 +135,6 @@ export default function EditEmployeePage() {
 
   // Save edited employee details
   const saveEdit = async () => {
-    // Basic validation
     for (const field of ['employee_number', 'branch_number', 'dept_number', 'role_number', 'name', 'surname', 'birth_date', 'salary']) {
       if (!editForm[field]) {
         setMessage({ type: 'error', text: `Field "${field}" is required.` });
@@ -148,7 +147,7 @@ export default function EditEmployeePage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          employee_number: Number(editForm.employee_number),
+          employee_number: editForm.employee_number,
           branch_number: Number(editForm.branch_number),
           dept_number: Number(editForm.dept_number),
           role_number: Number(editForm.role_number),

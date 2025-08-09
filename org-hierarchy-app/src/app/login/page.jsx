@@ -25,7 +25,8 @@ export default function LoginPage() {
 
       if (res.ok) {
         localStorage.setItem('session_token', data.token);
-        localStorage.setItem('user_email', email); // Save email for profile page
+        localStorage.setItem('user_email', email); 
+        localStorage.setItem('user_role', data.role || ''); 
         window.dispatchEvent(new Event('login'));
 
         // Redirect
