@@ -1,5 +1,6 @@
 # EPI-USE-EmployeeHierarchyManagement
 
+#Description
 A web-based employee hierarchy management system designed to help EPI-USE visualize, manage, and maintain their employee reporting structures efficiently.  
 The application features user registration and login, interactive hierarchy and list views, employee profile management, and administrative tools to manage branches, departments, and roles.  
 Its intuitive interface allows users to easily navigate the organizational chart, modify reporting lines, search and filter employees, and update personal profile information, including integration with Gravatar for profile pictures.  
