@@ -308,3 +308,99 @@
 .centerButton:hover {
   background-color: #45a049;
 }
+
+.addEmployeeButton {
+  background-color: #8b5cf6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.addEmployeeButton:hover {
+  background-color: #7c3aed;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.unassignedDropdownContainer {
+  position: relative;
+  margin-left: auto;
+}
+
+.unassignedDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 100;
+  min-width: 250px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.unassignedEmployee {
+  padding: 0.5rem;
+  cursor: grab;
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+  color: var(--control-text);
+  transition: background-color 0.2s;
+}
+
+.unassignedEmployee:hover {
+  background-color: var(--tree-bg);
+}
+
+.unassignedEmployee:active {
+  cursor: grabbing;
+}
+
+.noUnassigned {
+  padding: 0.5rem;
+  color: var(--control-text);
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.removeButton {
+  padding: 6px 12px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.removeButton:hover {
+  background-color: #dc2626;
+}
+
+.removeButton:disabled {
+  background-color: #fca5a5;
+  cursor: not-allowed;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}

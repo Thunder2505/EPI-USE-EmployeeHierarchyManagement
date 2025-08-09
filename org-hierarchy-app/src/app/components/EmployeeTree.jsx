@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import styles from './EmployeeTree.module.css';
 
 async function sha256(str) {
@@ -41,43 +41,14 @@ export default function EmployeeTree() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  useEffect(() => {
-    const checkDarkMode = () => {
-      setIsDarkMode(
-        window.matchMedia && 
-        window.matchMedia('(prefers-color-scheme: dark)').matches
-      );
-    };
-    checkDarkMode();
-    
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', checkDarkMode);
-    
-    return () => {
-      mediaQuery.removeEventListener('change', checkDarkMode);
-    };
-  }, []);
+  const [unassignedEmployees, setUnassignedEmployees] = useState([]);
+  const [showUnassignedDropdown, setShowUnassignedDropdown] = useState(false);
+  const [draggingUnassigned, setDraggingUnassigned] = useState(null);
 
-  // Add wheel event listener to prevent page scrolling
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const [isOverTrash, setIsOverTrash] = useState(false);
 
-    const preventPageScroll = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      handleWheel(e);
-    };
-
-    canvas.addEventListener('wheel', preventPageScroll, { passive: false });
-    
-    return () => {
-      canvas.removeEventListener('wheel', preventPageScroll);
-    };
-  }, [scale, position]);
-
-  const colors = {
+  // Memoize colors to prevent re-creation on every render
+  const colors = useMemo(() => ({
     dark: {
       nodeBg: '#434d8aff',
       nodeHover: '#4c5d8bff',
@@ -96,6 +67,94 @@ export default function EmployeeTree() {
       textColor: '#1e293b',
       shadowColor: 'rgba(0, 0, 0, 0.1)'
     }
+  }), []);
+
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(
+        window.matchMedia && 
+        window.matchMedia('(prefers-color-scheme: dark)').matches
+      );
+    };
+    checkDarkMode();
+    
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQuery.addEventListener('change', checkDarkMode);
+    
+    return () => {
+      mediaQuery.removeEventListener('change', checkDarkMode);
+    };
+  }, []);
+
+  // Memoize handleWheel function
+  const handleWheel = useCallback((e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const contentMouseX = (mouseX - position.x) / scale;
+    const contentMouseY = (mouseY - position.y) / scale;
+
+    const zoomSpeed = 0.001;
+    const delta = -e.deltaY * zoomSpeed;
+    const newScale = Math.min(Math.max(scale + delta, 0.10), 3);
+
+    const newX = mouseX - contentMouseX * newScale;
+    const newY = mouseY - contentMouseY * newScale;
+
+    setScale(newScale);
+    setPosition({ x: newX, y: newY });
+  }, [scale, position]);
+
+  // Add wheel event listener to prevent page scrolling
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const preventPageScroll = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      handleWheel(e);
+    };
+
+    canvas.addEventListener('wheel', preventPageScroll, { passive: false });
+    
+    return () => {
+      canvas.removeEventListener('wheel', preventPageScroll);
+    };
+  }, [handleWheel]);
+
+  useEffect(() => {
+    async function fetchUnassignedEmployees() {
+      try {
+        const response = await fetch('/api/not_assigned');
+        const data = await response.json();
+        setUnassignedEmployees(data);
+      } catch (err) {
+        console.error('Error fetching unassigned employees:', err);
+      }
+    }
+    
+    fetchUnassignedEmployees();
+  }, []);
+
+  const handleUnassignedDragStart = (employee) => {
+    setDraggingUnassigned(employee);
+    setIsDraggingNode(true);
+    setDraggedNode({
+      employee_number: employee.employee_number,
+      name: `${employee.name} ${employee.surname}`,
+      title: employee.role_name || 'Unknown Role',
+      data: employee,
+      children: [],
+      width: 350,
+      height: 400
+    });
+    setShowUnassignedDropdown(false);
   };
 
   const findNode = (tree, term) => {
@@ -147,6 +206,34 @@ export default function EmployeeTree() {
     };
 
     expandParents(node.employee_number, treeData);
+  };
+
+  const handleRemoveFromHierarchy = async (employeeId) => {
+    try {
+      setIsUpdating(true);
+      
+      // Find the current manager of the employee
+      const currentManager = findCurrentManager(employeeId, treeData);
+      
+      if (currentManager) {
+        await fetch('/api/hierarchy', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            employee_id: employeeId,
+            manager_id: currentManager
+          })
+        });
+        
+        // Refresh the tree data
+        await refreshTreeData();
+      }
+    } catch (error) {
+      console.error('Error removing from hierarchy:', error);
+      alert(`Failed to remove from hierarchy: ${error.message}`);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const [foundNode, setFoundNode] = useState(null);
@@ -428,7 +515,8 @@ export default function EmployeeTree() {
     fetchHierarchy();
   }, []);
 
-  const calculatePositions = (tree) => {
+  // Memoize calculatePositions function to prevent recreation
+  const calculatePositions = useCallback((tree) => {
     if (!tree) return { nodes: [], connections: [] };
 
     const nodes = [];
@@ -495,7 +583,7 @@ export default function EmployeeTree() {
 
     positionNodes(tree, 0, 0);
     return { nodes, connections };
-  };
+  }, [expandedNodes]);
 
   useEffect(() => {
     if (treeData && canvasRef.current) {
@@ -710,7 +798,7 @@ export default function EmployeeTree() {
       ctx.restore();
     }
 
-  }, [treeData, expandedNodes, scale, position, hoveredNode, draggedNode, isDraggingNode, dropTarget, lastMouse, dragOffset, isDarkMode]);
+  }, [treeData, expandedNodes, scale, position, hoveredNode, draggedNode, isDraggingNode, dropTarget, lastMouse, dragOffset, isDarkMode, calculatePositions, colors.dark, colors.light]);
 
   const getNodeAtPosition = (mouseX, mouseY) => {
     const { nodes } = calculatePositions(treeData);
@@ -812,12 +900,25 @@ export default function EmployeeTree() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    if (isDraggingNode && draggedNode && dropTarget) {
-      // Execute the hierarchy change
-      const currentManager = findCurrentManager(draggedNode.employee_number, treeData);
-      
-      if (dropTarget !== currentManager) {
-        await updateHierarchy(draggedNode.employee_number, dropTarget, currentManager);
+    if (isDraggingNode) {
+      if (draggedNode && dropTarget) {
+        // Execute the hierarchy change
+        await updateHierarchy(
+          draggedNode.employee_number, 
+          dropTarget, 
+          findCurrentManager(draggedNode.employee_number, treeData)
+        );
+      } else if (draggingUnassigned && dropTarget) {
+        // Handle assigning an unassigned employee
+        await updateHierarchy(
+          draggingUnassigned.employee_number,
+          dropTarget,
+          null
+        );
+      } else if ((draggedNode || draggingUnassigned) && isOverTrash) {
+        // Handle removing from hierarchy
+        const employeeId = draggedNode ? draggedNode.employee_number : draggingUnassigned.employee_number;
+        await handleRemoveFromHierarchy(employeeId);
       }
     }
 
@@ -825,7 +926,9 @@ export default function EmployeeTree() {
     setIsDragging(false);
     setIsDraggingNode(false);
     setDraggedNode(null);
+    setDraggingUnassigned(null);
     setDropTarget(null);
+    setIsOverTrash(false);
     setDragOffset({ x: 0, y: 0 });
     
     canvas.style.cursor = 'default';
@@ -869,29 +972,6 @@ export default function EmployeeTree() {
         });
       }
     }
-  };
-
-  const handleWheel = (e) => {
-    // This function is now called from the event listener we set up in useEffect
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const contentMouseX = (mouseX - position.x) / scale;
-    const contentMouseY = (mouseY - position.y) / scale;
-
-    const zoomSpeed = 0.001;
-    const delta = -e.deltaY * zoomSpeed;
-    const newScale = Math.min(Math.max(scale + delta, 0.10), 3);
-
-    const newX = mouseX - contentMouseX * newScale;
-    const newY = mouseY - contentMouseY * newScale;
-
-    setScale(newScale);
-    setPosition({ x: newX, y: newY });
   };
 
   const resetView = () => {
@@ -964,6 +1044,48 @@ export default function EmployeeTree() {
             </button>
           )}
         </form>
+
+        <div className={styles.unassignedDropdownContainer}>
+          <button 
+            type="button" 
+            onClick={async () => {
+              if (!showUnassignedDropdown) {
+                try {
+                  const response = await fetch('/api/not_assigned');
+                  const data = await response.json();
+                  setUnassignedEmployees(data);
+                } catch (err) {
+                  console.error('Error fetching unassigned employees:', err);
+                }
+              }
+              setShowUnassignedDropdown(!showUnassignedDropdown);
+            }}
+            className={styles.addEmployeeButton}
+            disabled={isUpdating}
+          >
+            Add Unassigned Employee
+          </button>
+          
+          {showUnassignedDropdown && (
+            <div className={styles.unassignedDropdown}>
+              {unassignedEmployees.length > 0 ? (
+                unassignedEmployees.map(emp => (
+                  <div 
+                    key={emp.employee_number}
+                    className={styles.unassignedEmployee}
+                    draggable
+                    onDragStart={() => handleUnassignedDragStart(emp)}
+                    onClick={() => handleUnassignedDragStart(emp)}
+                  >
+                    {emp.employee_number}: {emp.name} {emp.surname}
+                  </div>
+                ))
+              ) : (
+                <div className={styles.noUnassigned}>No unassigned employees</div>
+              )}
+            </div>
+          )}
+        </div>
         
         <button onClick={resetView} className={styles.resetButton} disabled={isUpdating}>
           Reset View
@@ -1036,6 +1158,20 @@ export default function EmployeeTree() {
                     height={64}
                     style={{ borderRadius: '50%', marginBottom: '1rem' }}
                   />
+                  <div className={styles.modalActions}>
+                    <button 
+                      className={styles.removeButton}
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to remove ${selectedEmployee.name} from the hierarchy?`)) {
+                          handleRemoveFromHierarchy(selectedEmployee.employee_number);
+                          setShowDetails(false);
+                        }
+                      }}
+                      disabled={isUpdating}
+                    >
+                      Remove from Hierarchy
+                    </button>
+                  </div>
                   <div className={styles.detailRow}>
                     <span className={styles.label}>Employee Number:</span>
                     <span className={styles.value}>{selectedEmployee.data.employee_number}</span>

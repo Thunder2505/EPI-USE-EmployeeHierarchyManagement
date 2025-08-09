@@ -1,5 +1,38 @@
 import mysql from 'mysql2/promise';
 
+/**
+ * @swagger
+ * /roles:
+ *   get:
+ *     summary: Get roles
+ *     description: Retrieve a list of all roles or a single role by role_id.
+ *     parameters:
+ *       - in: query
+ *         name: role_id
+ *         schema:
+ *           type: integer
+ *         required: false
+ *         description: Role ID to fetch a specific role.
+ *     responses:
+ *       200:
+ *         description: A role or list of roles.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   role_id:
+ *                     type: integer
+ *                   name:
+ *                     type: string
+ *       404:
+ *         description: Role not found.
+ *       500:
+ *         description: Database error.
+ */
+
 export async function GET(request) {
   const db = await mysql.createConnection({
     host: process.env.DB_HOST,
@@ -48,6 +81,31 @@ export async function GET(request) {
   }
 }
 
+/**
+ * @swagger
+ * /roles:
+ *   post:
+ *     summary: Add a new role
+ *     description: Insert a new role into the database.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Role name.
+ *     responses:
+ *       201:
+ *         description: Role added successfully.
+ *       500:
+ *         description: Database error.
+ */
+
 export async function POST(request) {
   const db = await mysql.createConnection({
     host: process.env.DB_HOST,
@@ -79,6 +137,37 @@ export async function POST(request) {
     await db.end();
   }
 }
+
+/**
+ * @swagger
+ * /roles:
+ *   put:
+ *     summary: Update a role
+ *     description: Update the name of an existing role by role_id.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role_id
+ *               - name
+ *             properties:
+ *               role_id:
+ *                 type: integer
+ *                 description: Role ID.
+ *               name:
+ *                 type: string
+ *                 description: New role name.
+ *     responses:
+ *       200:
+ *         description: Role updated successfully.
+ *       400:
+ *         description: Missing role_id or name.
+ *       500:
+ *         description: Database error.
+ */
 
 export async function PUT(request) {
   const db = await mysql.createConnection({
@@ -120,6 +209,33 @@ export async function PUT(request) {
     await db.end();
   }
 }
+
+/**
+ * @swagger
+ * /roles:
+ *   delete:
+ *     summary: Delete a role
+ *     description: Delete a role by role_id.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role_id
+ *             properties:
+ *               role_id:
+ *                 type: integer
+ *                 description: Role ID to delete.
+ *     responses:
+ *       200:
+ *         description: Role deleted successfully.
+ *       400:
+ *         description: Missing role_id.
+ *       500:
+ *         description: Database error.
+ */
 
 export async function DELETE(request) {
   const db = await mysql.createConnection({
