@@ -34,6 +34,7 @@ const UserManual = () => (
         <img src="/images/help-page/profile-details.png" alt="Employee profile details" />
         <p className={styles['image-description']}>
           You can click on an employee&apos;s profile photo to see more details on that employee. You can also remove an employee from the hierarchy in this menu.
+          <br/> You can also click on the open space around the profile picture to expand/collapse the nodes under the employee in the hierarchy.
         </p>
       </div>
       <div>

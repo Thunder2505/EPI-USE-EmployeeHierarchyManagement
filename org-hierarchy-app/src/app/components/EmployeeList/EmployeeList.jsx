@@ -1,7 +1,108 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './EmployeeList.module.css';
+
+// Searchable dropdown component
+const SearchableDropdown = ({ options, onSelect, placeholder, className }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [filteredOptions, setFilteredOptions] = useState([]);
+  const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    const filtered = options.filter(option => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        option.employee_number.toString().includes(searchLower) ||
+        option.name.toLowerCase().includes(searchLower) ||
+        option.surname.toLowerCase().includes(searchLower) ||
+        `${option.name} ${option.surname}`.toLowerCase().includes(searchLower)
+      );
+    });
+    setFilteredOptions(filtered);
+  }, [searchTerm, options]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleSelect = (option) => {
+    onSelect(option.employee_number);
+    setSearchTerm('');
+    setIsOpen(false);
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setSearchTerm(e.target.value);
+    setIsOpen(true);
+  };
+
+  const handleInputFocus = () => {
+    setIsOpen(true);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setIsOpen(false);
+      setSearchTerm('');
+      if (inputRef.current) {
+        inputRef.current.blur();
+      }
+    } else if (e.key === 'Enter' && filteredOptions.length === 1) {
+      e.preventDefault();
+      handleSelect(filteredOptions[0]);
+    }
+  };
+
+  return (
+    <div className={`${styles.searchableDropdown} ${className || ''}`} ref={dropdownRef}>
+      <input
+        ref={inputRef}
+        type="text"
+        className={styles.searchInput}
+        placeholder={placeholder}
+        value={searchTerm}
+        onChange={handleInputChange}
+        onFocus={handleInputFocus}
+        onKeyDown={handleKeyDown}
+        autoComplete="off"
+      />
+      {isOpen && (
+        <div className={styles.dropdownList}>
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map(option => (
+              <div
+                key={option.employee_number}
+                className={styles.dropdownItem}
+                onClick={() => handleSelect(option)}
+              >
+                #{option.employee_number} - {option.name} {option.surname}
+              </div>
+            ))
+          ) : (
+            <div className={styles.noResults}>
+              {searchTerm ? 'No employees found' : 'Type to search employees...'}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function EmployeeList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,6 +116,10 @@ export default function EmployeeList() {
   const [roles, setRoles] = useState([]);
   const [loadingDropdowns, setLoadingDropdowns] = useState(true);
 
+  const [hierarchyData, setHierarchyData] = useState([]);
+  const [subordinates, setSubordinates] = useState({});
+  const [availableEmployees, setAvailableEmployees] = useState([]);
+
   const [editingEmployeeNumber, setEditingEmployeeNumber] = useState(null);
   const [editForm, setEditForm] = useState({
     employee_number: '',
@@ -27,7 +132,6 @@ export default function EmployeeList() {
     salary: '',
   });
 
-  // Filter states
   const [filters, setFilters] = useState({
     branch: '',
     department: '',
@@ -39,6 +143,63 @@ export default function EmployeeList() {
   });
 
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    async function fetchHierarchy() {
+      try {
+        const res = await fetch('/api/hierarchy');
+        if (res.ok) {
+          const data = await res.json();
+          setHierarchyData(data);
+          
+          const subMap = {};
+          data.forEach(({ manager_id, employee_id }) => {
+            if (!subMap[manager_id]) {
+              subMap[manager_id] = [];
+            }
+            subMap[manager_id].push(employee_id);
+          });
+          setSubordinates(subMap);
+        }
+      } catch (err) {
+        console.error('Error fetching hierarchy:', err);
+      }
+    }
+    fetchHierarchy();
+  }, []);
+
+  useEffect(() => {
+    if (editingEmployeeNumber) {
+      const currentSubs = subordinates[editingEmployeeNumber] || [];
+      const reportingChain = getReportingChain(editingEmployeeNumber);
+      
+      const available = employees.filter(emp => 
+        emp.employee_number !== editingEmployeeNumber && 
+        !currentSubs.includes(emp.employee_number) &&
+        !reportingChain.includes(emp.employee_number)
+      );
+      setAvailableEmployees(available);
+    }
+  }, [editingEmployeeNumber, employees, subordinates]);
+
+  const getReportingChain = (employeeId) => {
+    const chain = [];
+    const visited = new Set();
+    let current = employeeId;
+    
+    while (current && !visited.has(current)) {
+      visited.add(current);
+      const manager = hierarchyData.find(h => h.employee_id === current);
+      if (manager) {
+        chain.push(manager.manager_id);
+        current = manager.manager_id;
+      } else {
+        break;
+      }
+    }
+    
+    return chain;
+  };
 
   useEffect(() => {
     async function fetchEmployees() {
@@ -268,7 +429,81 @@ export default function EmployeeList() {
     }
   };
 
-  // Helper function to get name by ID
+  // Hierarchy management functions
+  const addSubordinate = async (managerId, subordinateId) => {
+    try {
+      const res = await fetch('/api/hierarchy', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: subordinateId,
+          manager_id: managerId,
+        }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to add subordinate');
+      }
+      
+      const hierarchyRes = await fetch('/api/hierarchy');
+      if (hierarchyRes.ok) {
+        const data = await hierarchyRes.json();
+        setHierarchyData(data);
+        
+        const subMap = {};
+        data.forEach(({ manager_id, employee_id }) => {
+          if (!subMap[manager_id]) {
+            subMap[manager_id] = [];
+          }
+          subMap[manager_id].push(employee_id);
+        });
+        setSubordinates(subMap);
+      }
+      
+      setMessage({ type: 'success', text: 'Subordinate added successfully' });
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  const removeSubordinate = async (managerId, subordinateId) => {
+    try {
+      const res = await fetch('/api/hierarchy', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: subordinateId,
+          manager_id: managerId,
+        }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to remove subordinate');
+      }
+      
+      const hierarchyRes = await fetch('/api/hierarchy');
+      if (hierarchyRes.ok) {
+        const data = await hierarchyRes.json();
+        setHierarchyData(data);
+        
+        const subMap = {};
+        data.forEach(({ manager_id, employee_id }) => {
+          if (!subMap[manager_id]) {
+            subMap[manager_id] = [];
+          }
+          subMap[manager_id].push(employee_id);
+        });
+        setSubordinates(subMap);
+      }
+      
+      setMessage({ type: 'success', text: 'Subordinate removed successfully' });
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
   const getBranchName = (branchId) => {
     const branch = branches.find(b => b.branch_id === branchId);
     return branch ? branch.name : 'Unknown';
@@ -284,10 +519,15 @@ export default function EmployeeList() {
     return role ? role.name : 'Unknown';
   };
 
+  const getEmployeeName = (empId) => {
+    const emp = employees.find(e => e.employee_number === empId);
+    return emp ? `${emp.name} ${emp.surname}` : `Employee ${empId}`;
+  };
+
   return (
     <>
     <div className={styles.page}>
-      <h1 className={styles.heading}>Edit / Delete Employees</h1>
+      <h1 className={styles.heading}>Edit / Delete Employees & Manage Hierarchy</h1>
 
       {message && (
         <p className={message.type === 'success' ? styles.message : styles.error}>
@@ -569,6 +809,36 @@ export default function EmployeeList() {
                       />
                     </div>
 
+                    {/* Hierarchy Management Section */}
+                    <div className={styles.hierarchySection}>
+                      <h4 className={styles.hierarchyHeading}>Manages</h4>
+                      <div className={styles.currentSubordinates}>
+                        {(subordinates[emp.employee_number] || []).length > 0 ? (
+                          subordinates[emp.employee_number].map(subId => (
+                            <div key={subId} className={styles.subordinateItem}>
+                              <span>#{subId} - {getEmployeeName(subId)}</span>
+                              <button
+                                type="button"
+                                className={`${styles.buttonSmall} ${styles.removeSubordinateButton}`}
+                                onClick={() => removeSubordinate(emp.employee_number, subId)}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <p className={styles.noSubordinates}>No direct reports</p>
+                        )}
+                      </div>
+                      <div className={styles.addSubordinate}>
+                        <SearchableDropdown
+                          options={availableEmployees}
+                          onSelect={(employeeId) => addSubordinate(emp.employee_number, employeeId)}
+                          placeholder="Search and add employee to report to this person..."
+                        />
+                      </div>
+                    </div>
+
                     <div className={styles.buttonRow}>
                       <button className={styles.buttonSmall} type="submit">Save</button>
                       <button className={styles.buttonSmall} type="button" onClick={cancelEdit}>Cancel</button>
@@ -596,6 +866,11 @@ export default function EmployeeList() {
                         <span className={styles.detailItem}>
                           DOB: {new Date(emp.birth_date).toLocaleDateString()}
                         </span>
+                        {subordinates[emp.employee_number] && subordinates[emp.employee_number].length > 0 && (
+                          <span className={styles.detailItem}>
+                            Manages: {subordinates[emp.employee_number].length} employee{subordinates[emp.employee_number].length !== 1 ? 's' : ''}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className={styles.actionButtons}>

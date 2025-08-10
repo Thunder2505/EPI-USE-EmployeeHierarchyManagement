@@ -434,7 +434,17 @@ export default function EmployeeTree() {
   };
 
   function buildTree(hierarchyData, employeeMap) {
-    if (!hierarchyData || hierarchyData.length === 0) return null;
+    const rootNode = {
+      employee_number: 'root',
+      name: 'Organization',
+      title: 'Root Level',
+      data: {},
+      children: []
+    };
+
+    if (!hierarchyData || hierarchyData.length === 0) {
+      return rootNode;
+    }
 
     const nodes = {};
     const subordinates = new Set();
@@ -468,19 +478,11 @@ export default function EmployeeTree() {
       .filter(empId => !subordinates.has(empId))
       .map(empId => nodes[empId]);
 
-    if (roots.length === 1) {
-      return roots[0];
-    } else if (roots.length > 1) {
-      return {
-        employee_number: 'root',
-        name: 'Organization',
-        title: 'Root Level',
-        data: {},
-        children: roots,
-      };
-    } else {
-      return null;
+    if (roots.length > 0) {
+      rootNode.children = roots;
     }
+
+    return rootNode;
   }
 
   useEffect(() => {
@@ -1014,10 +1016,18 @@ export default function EmployeeTree() {
     return new Date(dateString).toLocaleDateString('en-ZA');
   };
 
-  if (!treeData) {
-    return <div className={styles.loading}>Loading hierarchy...</div>;
-  }
-
+  if (!treeData || (treeData.employee_number === 'root' && treeData.children.length === 0)) {
+  return (
+    <div className={styles.treeWrapper}>
+      <div className={styles.emptyHierarchy}>
+        The organizational hierarchy is currently empty.
+        {unassignedEmployees.length > 0 && (
+          <div>To create the hierarchy from scratch go to list view and assign the first employee to the CEO</div>
+        )}
+      </div>
+    </div>
+  );
+}
   return (
     <div className={styles.treeWrapper}>
       <div className={styles.controls}>

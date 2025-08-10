@@ -404,3 +404,19 @@
   align-items: center;
   margin-bottom: 1rem;
 }
+
+.emptyHierarchy {
+  height: 100%;
+  padding: 2rem;
+  text-align: center;
+  font-size: 1.2rem;
+  color: var(--control-text);
+  background: var(--tree-bg);
+  border-radius: 8px;
+  margin: 1rem;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
