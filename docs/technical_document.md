@@ -160,5 +160,19 @@ The EPI-USE-Employee Hierarchy Management Web App is a **Next.js** application w
 <br><br><br>
 ---
 
-## **Justification**:
+# **Justification**
 
+## Design Decisions:
+
+* **User login and registration:** I decided to make it so only existing employees can register since the app is made for the company, not externals.<br> And this way it ensures that employees can set their own passwords and emails, not requiring admin to provide these to the employees before logging in.
+* **Hierarchy structure choice:** I opted for a tree structure rather than a graph structure because each employee should report to only one manager.<br> Allowing multiple reporting lines could lead to communication issues and complexity in management.
+
+* **Editing restrictions:** Editing employee information is limited to the list view, rather than allowing changes directly within the tree view.<br> This decision helps avoid clutter and complexity that would arise from embedding editing features within the hierarchical tree interface.
+
+* **Hierarchy creation constraints:** Creating a reporting hierarchy can only be done from the list view and not from the tree view.<br> Since a hierarchy requires at least two employees, and drag-and-drop operations on multiple employees simultaneously are not supported, the list view is the more practical place to manage this.
+
+* **Search functionality:** The hierarchy search operates in two phases due to inconsistencies with asynchronous calls and the absence of a reliable workaround.<br> This phased approach improves search reliability and user experience.
+
+* **Time and skill considerations:** Many of the design decisions were influenced by time constraints and my current skill set.<br> I chose to avoid exploring too many new technologies to keep the project manageable and ensure timely completion.
+
+---
